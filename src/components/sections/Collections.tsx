@@ -57,10 +57,15 @@ export default function Collections() {
 
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div>
-              <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase tracking-wide text-white sm:text-6xl">
-                Nuestras
-                <span className="ml-3 text-red-500">colecciones</span>
-              </h2>
+             <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase leading-[0.95] tracking-wide text-white sm:text-6xl">
+  <span className="block sm:inline">
+    Nuestras
+  </span>
+
+  <span className="block text-red-500 sm:ml-3 sm:inline">
+    colecciones
+  </span>
+</h2>
 
               <p className="mt-4 max-w-2xl text-zinc-400">
                 Explora nuestras líneas y encuentra diseños creados para
