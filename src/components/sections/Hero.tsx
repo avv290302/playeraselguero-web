@@ -98,7 +98,7 @@ export default function Hero() {
               <div className="absolute -inset-2 rounded-[28px] border border-white/5 bg-white/[0.02] sm:-inset-4 sm:rounded-[40px]" />
 
               <Image
-                src="/images/hero/hero-shirt3.png"
+                src="/images/hero/hero-shirt4.png"
                 alt="Playera personalizada Playeras El Güero"
                 width={1080}
                 height={1080}
