@@ -1,8 +1,5 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import Container from "@/components/common/Container";
 import { products } from "@/data/products";
@@ -18,40 +15,23 @@ const filters = [
   "Sweater",
 ];
 
-export default function Catalog() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+type CatalogProps = {
+  activeFilter?: string;
+};
 
-  const lineFromUrl = searchParams.get("line");
-
-  const activeFilter =
-    lineFromUrl && filters.includes(lineFromUrl)
-      ? lineFromUrl
-      : "Todos";
+export default function Catalog({
+  activeFilter = "Todos",
+}: CatalogProps) {
+  const currentFilter = filters.includes(activeFilter)
+    ? activeFilter
+    : "Todos";
 
   const filteredProducts =
-    activeFilter === "Todos"
+    currentFilter === "Todos"
       ? products
       : products.filter(
-          (product) => product.line === activeFilter
+          (product) => product.line === currentFilter
         );
-
-  const handleFilterChange = (filter: string) => {
-    if (filter === "Todos") {
-      router.replace("/#catalogo", {
-        scroll: false,
-      });
-
-      return;
-    }
-
-    router.replace(
-      `/?line=${encodeURIComponent(filter)}#catalogo`,
-      {
-        scroll: false,
-      }
-    );
-  };
 
   return (
     <section
@@ -81,13 +61,17 @@ export default function Catalog() {
         {/* Filtros */}
         <div className="mb-10 flex flex-wrap gap-3">
           {filters.map((filter) => {
-            const isActive = activeFilter === filter;
+            const isActive = currentFilter === filter;
+
+            const href =
+              filter === "Todos"
+                ? "/#catalogo"
+                : `/?line=${encodeURIComponent(filter)}#catalogo`;
 
             return (
-              <button
+              <Link
                 key={filter}
-                type="button"
-                onClick={() => handleFilterChange(filter)}
+                href={href}
                 className={`rounded-full border px-5 py-2 text-sm font-bold transition ${
                   isActive
                     ? "border-red-500 bg-red-600 text-white"
@@ -95,13 +79,13 @@ export default function Catalog() {
                 }`}
               >
                 {filter}
-              </button>
+              </Link>
             );
           })}
         </div>
 
-        {/* Información del filtro */}
-        <div className="mb-8 flex items-center justify-between">
+        {/* Información */}
+        <div className="mb-8 flex items-center justify-between gap-4">
           <p className="text-sm text-zinc-500">
             Mostrando{" "}
             <span className="font-bold text-white">
@@ -112,9 +96,9 @@ export default function Catalog() {
               : "diseños"}
           </p>
 
-          {activeFilter !== "Todos" && (
+          {currentFilter !== "Todos" && (
             <p className="text-sm font-bold uppercase tracking-wider text-red-500">
-              {activeFilter}
+              {currentFilter}
             </p>
           )}
         </div>
@@ -126,7 +110,6 @@ export default function Catalog() {
               key={product.slug}
               className="group overflow-hidden rounded-2xl border border-white/10 bg-[#101010] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
             >
-              {/* Imagen */}
               <Link href={`/producto/${product.slug}`}>
                 <div className="relative aspect-square overflow-hidden">
                   <Image
@@ -144,7 +127,6 @@ export default function Catalog() {
                 </div>
               </Link>
 
-              {/* Información */}
               <div className="p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
                   Colección {product.line}
@@ -173,7 +155,7 @@ export default function Catalog() {
           ))}
         </div>
 
-        {/* Sin productos */}
+        {/* Sin resultados */}
         {filteredProducts.length === 0 && (
           <div className="py-20 text-center">
             <h3 className="font-[family-name:var(--font-bebas)] text-4xl uppercase text-white">
