@@ -12,30 +12,28 @@ export default function AdminLoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [recovering, setRecovering] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setErrorMessage("");
-    setSuccessMessage("");
     setLoading(true);
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
     if (error) {
       setErrorMessage(
-        "No pudimos iniciar sesión. Si todavía no has creado una contraseña para este panel, utiliza la opción de recuperar contraseña."
+        "Correo o contraseña incorrectos."
       );
 
       setLoading(false);
@@ -44,46 +42,6 @@ export default function AdminLoginPage() {
 
     router.replace("/admin");
     router.refresh();
-  }
-
-  async function handlePasswordRecovery() {
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    if (!email.trim()) {
-      setErrorMessage(
-        "Primero escribe tu correo electrónico en el campo de arriba."
-      );
-      return;
-    }
-
-    setRecovering(true);
-
-    const supabase = createClient();
-
-    const origin = window.location.origin;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email.trim(),
-      {
-        redirectTo: `${origin}/auth/callback?next=/admin/reset-password`,
-      }
-    );
-
-    if (error) {
-      setErrorMessage(
-        "No fue posible enviar el correo de recuperación. Inténtalo nuevamente."
-      );
-
-      setRecovering(false);
-      return;
-    }
-
-    setSuccessMessage(
-      "Te enviamos un correo. Revisa tu bandeja de entrada y también la carpeta de spam."
-    );
-
-    setRecovering(false);
   }
 
   return (
@@ -132,7 +90,9 @@ export default function AdminLoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               required
               autoComplete="email"
               placeholder="tu@correo.com"
@@ -152,7 +112,9 @@ export default function AdminLoginPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
               required
               autoComplete="current-password"
               placeholder="••••••••"
@@ -166,29 +128,14 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          {successMessage && (
-            <div className="mt-5 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm leading-6 text-green-400">
-              {successMessage}
-            </div>
-          )}
-
           <button
             type="submit"
-            disabled={loading || recovering}
+            disabled={loading}
             className="mt-7 w-full rounded-xl bg-red-600 px-6 py-4 text-sm font-bold uppercase tracking-[0.15em] text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Ingresando..." : "Entrar al panel"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePasswordRecovery}
-            disabled={loading || recovering}
-            className="mt-4 w-full rounded-xl border border-white/10 px-6 py-4 text-sm font-bold text-zinc-400 transition hover:border-red-500/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {recovering
-              ? "Enviando correo..."
-              : "Crear o recuperar contraseña"}
+            {loading
+              ? "Ingresando..."
+              : "Entrar al panel"}
           </button>
         </form>
 

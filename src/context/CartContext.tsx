@@ -21,6 +21,11 @@ export type CartItem = {
 type CartContextType = {
   items: CartItem[];
   totalItems: number;
+
+  cartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+
   addItem: (item: CartItem) => void;
   removeItem: (id: string, size: string) => void;
   updateQuantity: (
@@ -43,6 +48,8 @@ export function CartProvider({
 }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -83,6 +90,14 @@ export function CartProvider({
       );
     }
   }, [items, hydrated]);
+
+  function openCart() {
+    setCartOpen(true);
+  }
+
+  function closeCart() {
+    setCartOpen(false);
+  }
 
   function addItem(newItem: CartItem) {
     setItems((currentItems) => {
@@ -167,12 +182,17 @@ export function CartProvider({
     () => ({
       items,
       totalItems,
+
+      cartOpen,
+      openCart,
+      closeCart,
+
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
     }),
-    [items, totalItems]
+    [items, totalItems, cartOpen]
   );
 
   return (

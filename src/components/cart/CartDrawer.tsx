@@ -22,21 +22,24 @@ export default function CartDrawer({
   } = useCart();
 
   const whatsappMessage = encodeURIComponent(
-    [
-      "Hola, quiero solicitar una cotización:",
+  [
+    "Hola, quiero solicitar una cotización en Playeras El Güero.",
+    "",
+    "PEDIDO:",
+    "",
+    ...items.flatMap((item, index) => [
+      `${index + 1}. ${item.name}`,
+      `   Talla: ${item.size}`,
+      `   Cantidad: ${item.quantity}`,
+      `   https://playeraselguero.com/producto/${item.slug}`,
       "",
-      ...items.flatMap((item, index) => [
-        `${index + 1}. ${item.name}`,
-        `Talla: ${item.size}`,
-        `Cantidad: ${item.quantity}`,
-        `Producto: https://playeraselguero.com/producto/${item.slug}`,
-        "",
-      ]),
-      `Total de prendas: ${totalItems}`,
-      "",
-      "¿Me puedes ayudar con la cotización?",
-    ].join("\n")
-  );
+    ]),
+    `TOTAL DE PRENDAS: ${totalItems}`,
+    "",
+    "Quedo atento a precio, disponibilidad y tiempo de entrega.",
+    "Gracias.",
+  ].join("\n")
+);
 
   const whatsappUrl =
     `https://wa.me/524922230511?text=${whatsappMessage}`;

@@ -9,49 +9,32 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { useCart } from "@/context/CartContext";
 
 const navigation = [
-  {
-    name: "Inicio",
-    href: "/",
-  },
-  {
-    name: "Catálogo",
-    href: "/#catalogo",
-  },
-  {
-    name: "Colecciones",
-    href: "/#colecciones",
-  },
-  {
-    name: "Personaliza",
-    href: "/#personaliza",
-  },
-  {
-    name: "Galería",
-    href: "/#galeria",
-  },
-  {
-    name: "Nosotros",
-    href: "/#nosotros",
-  },
-  {
-    name: "Contacto",
-    href: "/#contacto",
-  },
+  { name: "Inicio", href: "/" },
+  { name: "Catálogo", href: "/#catalogo" },
+  { name: "Colecciones", href: "/#colecciones" },
+  { name: "Personaliza", href: "/#personaliza" },
+  { name: "Galería", href: "/#galeria" },
+  { name: "Nosotros", href: "/#nosotros" },
+  { name: "Contacto", href: "/#contacto" },
 ];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
 
-  const { totalItems } = useCart();
+  const {
+    totalItems,
+    cartOpen,
+    openCart,
+    closeCart,
+  } = useCart();
 
   const closeMenu = () => {
     setMenuOpen(false);
   };
 
-  const openCart = () => {
+  const handleOpenCart = () => {
     setMenuOpen(false);
-    setCartOpen(true);
+    openCart();
   };
 
   return (
@@ -59,7 +42,6 @@ export default function Navbar() {
       <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/85 backdrop-blur-xl">
         <Container>
           <nav className="flex h-20 items-center justify-between">
-            {/* Logo */}
             <Link
               href="/"
               className="flex items-center gap-3"
@@ -85,7 +67,6 @@ export default function Navbar() {
               </div>
             </Link>
 
-            {/* Menú escritorio */}
             <div className="hidden items-center gap-7 text-sm font-medium lg:flex">
               {navigation.map((item) => (
                 <Link
@@ -98,12 +79,10 @@ export default function Navbar() {
               ))}
             </div>
 
-            {/* Derecha */}
             <div className="flex items-center gap-3">
-              {/* Carrito */}
               <button
                 type="button"
-                onClick={openCart}
+                onClick={handleOpenCart}
                 className="relative flex h-11 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm font-bold text-white transition hover:border-red-500/50 hover:bg-white/[0.06]"
                 aria-label={`Abrir carrito. ${totalItems} prendas`}
               >
@@ -120,7 +99,6 @@ export default function Navbar() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-
                   <circle cx="10" cy="20" r="1" />
                   <circle cx="17" cy="20" r="1" />
                 </svg>
@@ -131,14 +109,11 @@ export default function Navbar() {
 
                 {totalItems > 0 && (
                   <span className="absolute -right-2 -top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white">
-                    {totalItems > 99
-                      ? "99+"
-                      : totalItems}
+                    {totalItems > 99 ? "99+" : totalItems}
                   </span>
                 )}
               </button>
 
-              {/* WhatsApp escritorio */}
               <a
                 href="https://wa.me/524922230511?text=Hola%2C%20quiero%20cotizar%20una%20playera."
                 target="_blank"
@@ -148,13 +123,10 @@ export default function Navbar() {
                 Cotizar
               </a>
 
-              {/* Botón hamburguesa */}
               <button
                 type="button"
                 onClick={() =>
-                  setMenuOpen(
-                    (current) => !current
-                  )
+                  setMenuOpen((current) => !current)
                 }
                 className="flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] transition hover:border-red-500/40 lg:hidden"
                 aria-label={
@@ -174,9 +146,7 @@ export default function Navbar() {
 
                 <span
                   className={`h-0.5 w-5 bg-white transition ${
-                    menuOpen
-                      ? "opacity-0"
-                      : ""
+                    menuOpen ? "opacity-0" : ""
                   }`}
                 />
 
@@ -192,7 +162,6 @@ export default function Navbar() {
           </nav>
         </Container>
 
-        {/* Menú móvil */}
         <div
           className={`overflow-hidden border-t border-white/10 bg-[#080808] transition-all duration-300 lg:hidden ${
             menuOpen
@@ -215,7 +184,7 @@ export default function Navbar() {
 
               <button
                 type="button"
-                onClick={openCart}
+                onClick={handleOpenCart}
                 className="mt-5 rounded-lg border border-white/10 px-5 py-4 text-center text-sm font-bold uppercase tracking-wide text-white transition hover:border-red-500/40"
               >
                 Ver carrito
@@ -240,7 +209,7 @@ export default function Navbar() {
 
       <CartDrawer
         open={cartOpen}
-        onClose={() => setCartOpen(false)}
+        onClose={closeCart}
       />
     </>
   );

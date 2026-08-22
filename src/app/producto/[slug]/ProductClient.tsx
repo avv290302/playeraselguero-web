@@ -28,7 +28,7 @@ export default function ProductClient({
   product,
   relatedProducts,
 }: ProductClientProps) {
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
 
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -46,15 +46,16 @@ export default function ProductClient({
     if (!selectedSize) {
       return;
     }
+addItem({
+  id: product.id,
+  slug: product.slug,
+  name: product.name,
+  image: product.image,
+  size: selectedSize,
+  quantity,
+});
 
-    addItem({
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      image: product.image,
-      size: selectedSize,
-      quantity,
-    });
+openCart();
 
     setAddedMessage(
       `${product.name} · talla ${selectedSize} · ${quantity} ${
