@@ -2,10 +2,72 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Container from "@/components/common/Container";
-import { products } from "@/data/products";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Gallery() {
-  const galleryProducts = products.slice(0, 8);
+function getCollectionName(collection: unknown) {
+  if (
+    collection &&
+    typeof collection === "object" &&
+    !Array.isArray(collection) &&
+    "name" in collection
+  ) {
+    const name = (collection as { name?: unknown }).name;
+    return typeof name === "string" ? name : "";
+  }
+
+  if (Array.isArray(collection) && collection.length > 0) {
+    const firstCollection = collection[0];
+
+    if (
+      firstCollection &&
+      typeof firstCollection === "object" &&
+      "name" in firstCollection
+    ) {
+      const name = (
+        firstCollection as { name?: unknown }
+      ).name;
+
+      return typeof name === "string" ? name : "";
+    }
+  }
+
+  return "";
+}
+
+export default async function Gallery() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(`
+      id,
+      slug,
+      name,
+      image_url,
+      collections (
+        name
+      )
+    `)
+    .eq("active", true)
+    .order("sort_order", {
+      ascending: true,
+    })
+    .limit(8);
+
+  if (error) {
+    console.error(
+      "Error cargando la galería desde Supabase:",
+      error
+    );
+  }
+
+  const galleryProducts = (data ?? []).map((product) => ({
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    image: product.image_url ?? "",
+    line: getCollectionName(product.collections),
+  }));
 
   return (
     <section
@@ -25,12 +87,15 @@ export default function Gallery() {
 
             <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-5xl uppercase tracking-wide text-white sm:text-6xl">
               Diseños que
-              <span className="ml-3 text-red-500">hablan por sí solos</span>
+              <span className="ml-3 text-red-500">
+                hablan por sí solos
+              </span>
             </h2>
 
             <p className="mt-4 max-w-2xl leading-7 text-zinc-400">
-              Una muestra de algunos de nuestros diseños. Cada playera combina
-              identidad, estilo y pasión en una pieza única.
+              Una muestra de algunos de nuestros diseños. Cada
+              playera combina identidad, estilo y pasión en una
+              pieza única.
             </p>
           </div>
 
@@ -49,7 +114,7 @@ export default function Gallery() {
 
             return (
               <Link
-                key={product.slug}
+                key={product.id}
                 href={`/producto/${product.slug}`}
                 className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111] ${
                   featured
@@ -57,19 +122,24 @@ export default function Gallery() {
                     : ""
                 }`}
               >
-                <div
-                  className={`relative ${
-                    featured
-                      ? "aspect-square"
-                      : "aspect-square"
-                  }`}
-                >
-                  <Image
-                    src={product.image}
-                    alt={`Diseño ${product.name}`}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-110"
-                  />
+                <div className="relative aspect-square">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={`Diseño ${product.name}`}
+                      fill
+                      sizes={
+                        featured
+                          ? "(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 50vw"
+                          : "(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
+                      }
+                      className="object-cover transition duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-zinc-600">
+                      Sin imagen
+                    </div>
+                  )}
 
                   {/* Oscurecimiento */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-60 transition duration-300 group-hover:opacity-90" />

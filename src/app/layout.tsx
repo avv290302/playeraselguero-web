@@ -3,6 +3,8 @@ import { Montserrat, Bebas_Neue } from "next/font/google";
 
 import "./globals.css";
 
+import { CartProvider } from "@/context/CartContext";
+
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
@@ -59,7 +61,8 @@ export const metadata: Metadata = {
     locale: "es_MX",
     url: "/",
     siteName: "Playeras El Güero",
-    title: "Playeras El Güero | Diseños que representan tu pasión",
+    title:
+      "Playeras El Güero | Diseños que representan tu pasión",
     description:
       "Diseños exclusivos y playeras personalizadas. Explora nuestro catálogo y cotiza directamente por WhatsApp.",
     images: [
@@ -96,7 +99,9 @@ export default function RootLayout({
       <body
         className={`${montserrat.variable} ${bebasNeue.variable} antialiased`}
       >
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

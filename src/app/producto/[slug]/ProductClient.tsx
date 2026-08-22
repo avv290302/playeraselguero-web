@@ -5,17 +5,34 @@ import Link from "next/link";
 import { useState } from "react";
 
 import Container from "@/components/common/Container";
-import { products, type Product } from "@/data/products";
+import { useCart } from "@/context/CartContext";
+
+type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  line: string;
+  subtitle: string;
+  image: string;
+  color: string;
+  sizes: string[];
+  description: string;
+};
 
 type ProductClientProps = {
   product: Product;
+  relatedProducts: Product[];
 };
 
 export default function ProductClient({
   product,
+  relatedProducts,
 }: ProductClientProps) {
+  const { addItem } = useCart();
+
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [addedMessage, setAddedMessage] = useState("");
 
   const decreaseQuantity = () => {
     setQuantity((current) => Math.max(1, current - 1));
@@ -25,24 +42,32 @@ export default function ProductClient({
     setQuantity((current) => current + 1);
   };
 
-  const productUrl = `https://playeraselguero.com/producto/${product.slug}`;
+  function handleAddToCart() {
+    if (!selectedSize) {
+      return;
+    }
 
-  const whatsappMessage = encodeURIComponent(
-    `Hola, me interesa la playera ${product.name}.
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.image,
+      size: selectedSize,
+      quantity,
+    });
 
-Talla: ${selectedSize || "Sin seleccionar"}
-Cantidad: ${quantity}
+    setAddedMessage(
+      `${product.name} · talla ${selectedSize} · ${quantity} ${
+        quantity === 1 ? "pieza agregada" : "piezas agregadas"
+      }`
+    );
 
-¿Me puedes dar más información?
+    setQuantity(1);
 
-Producto: ${productUrl}`
-  );
-
-  const whatsappUrl = `https://wa.me/524922230511?text=${whatsappMessage}`;
-
-  const relatedProducts = products
-    .filter((item) => item.slug !== product.slug)
-    .slice(0, 3);
+    window.setTimeout(() => {
+      setAddedMessage("");
+    }, 2500);
+  }
 
   return (
     <>
@@ -57,6 +82,7 @@ Producto: ${productUrl}`
                   src={product.image}
                   alt={`Playera ${product.name}`}
                   fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover transition duration-700 hover:scale-105"
                   priority
                 />
@@ -175,33 +201,34 @@ Producto: ${productUrl}`
                 </div>
               </div>
 
-              {/* AVISO */}
               {!selectedSize && (
                 <p className="mt-5 text-sm text-zinc-500">
-                  Selecciona una talla para preparar tu cotización.
+                  Selecciona una talla antes de agregar al carrito.
                 </p>
+              )}
+
+              {addedMessage && (
+                <div className="mt-5 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-400">
+                  ✓ {addedMessage}
+                </div>
               )}
 
               {/* BOTONES */}
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-                {selectedSize ? (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-lg bg-red-600 px-7 py-4 text-center text-sm font-bold uppercase tracking-wide text-white transition hover:-translate-y-0.5 hover:bg-red-500"
-                  >
-                    Cotizar por WhatsApp
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    disabled
-                    className="cursor-not-allowed rounded-lg bg-zinc-800 px-7 py-4 text-center text-sm font-bold uppercase tracking-wide text-zinc-500"
-                  >
-                    Selecciona una talla
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={!selectedSize}
+                  className={`rounded-lg px-7 py-4 text-center text-sm font-bold uppercase tracking-wide transition ${
+                    selectedSize
+                      ? "bg-red-600 text-white hover:-translate-y-0.5 hover:bg-red-500"
+                      : "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                  }`}
+                >
+                  {selectedSize
+                    ? "Agregar al carrito"
+                    : "Selecciona una talla"}
+                </button>
 
                 <Link
                   href="/#catalogo"
@@ -216,60 +243,69 @@ Producto: ${productUrl}`
       </section>
 
       {/* PRODUCTOS RELACIONADOS */}
-      <section className="border-t border-white/10 bg-[#080808] py-20 text-white">
-        <Container>
-          <div className="mb-10">
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
-              Descubre más
-            </p>
+      {relatedProducts.length > 0 && (
+        <section className="border-t border-white/10 bg-[#080808] py-20 text-white">
+          <Container>
+            <div className="mb-10">
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
+                Descubre más
+              </p>
 
-            <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-4xl uppercase leading-none tracking-wide sm:text-5xl">
-              También te puede interesar
-            </h2>
-          </div>
+              <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-4xl uppercase leading-none tracking-wide sm:text-5xl">
+                También te puede interesar
+              </h2>
+            </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {relatedProducts.map((item) => (
-              <Link
-                key={item.slug}
-                href={`/producto/${item.slug}`}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
-              >
-                <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={item.image}
-                    alt={`Playera ${item.name}`}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-110"
-                  />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedProducts.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/producto/${item.slug}`}
+                  className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
+                >
+                  <div className="relative aspect-square overflow-hidden">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={`Playera ${item.name}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-zinc-600">
+                        Sin imagen
+                      </div>
+                    )}
 
-                  <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
-                    {item.line}
+                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
+                      {item.line}
+                    </div>
                   </div>
-                </div>
 
-                <div className="p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
-                    Colección {item.line}
-                  </p>
+                  <div className="p-5">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                      Colección {item.line}
+                    </p>
 
-                  <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase text-white">
-                    {item.name}
-                  </h3>
+                    <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase text-white">
+                      {item.name}
+                    </h3>
 
-                  <p className="mt-1 text-sm text-zinc-500">
-                    {item.subtitle}
-                  </p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {item.subtitle}
+                    </p>
 
-                  <div className="mt-5 text-sm font-bold uppercase tracking-wider text-red-500">
-                    Ver diseño →
+                    <div className="mt-5 text-sm font-bold uppercase tracking-wider text-red-500">
+                      Ver diseño →
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Container>
-      </section>
+                </Link>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
     </>
   );
 }

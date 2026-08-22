@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Container from "@/components/common/Container";
-import { products } from "@/data/products";
+import { createClient } from "@/lib/supabase/server";
 
 const filters = [
   "Todos",
@@ -19,9 +19,87 @@ type CatalogProps = {
   activeFilter?: string;
 };
 
-export default function Catalog({
+function getCollectionName(collection: unknown) {
+  if (
+    collection &&
+    typeof collection === "object" &&
+    !Array.isArray(collection) &&
+    "name" in collection
+  ) {
+    const name = (collection as { name?: unknown }).name;
+
+    return typeof name === "string" ? name : "";
+  }
+
+  if (
+    Array.isArray(collection) &&
+    collection.length > 0
+  ) {
+    const firstCollection = collection[0];
+
+    if (
+      firstCollection &&
+      typeof firstCollection === "object" &&
+      "name" in firstCollection
+    ) {
+      const name = (
+        firstCollection as { name?: unknown }
+      ).name;
+
+      return typeof name === "string" ? name : "";
+    }
+  }
+
+  return "";
+}
+
+export default async function Catalog({
   activeFilter = "Todos",
 }: CatalogProps) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(`
+      id,
+      slug,
+      name,
+      subtitle,
+      description,
+      color,
+      sizes,
+      image_url,
+      sort_order,
+      collections (
+        name
+      )
+    `)
+    .eq("active", true)
+    .order("sort_order", {
+      ascending: true,
+    });
+
+  if (error) {
+    console.error(
+      "Error cargando el catálogo desde Supabase:",
+      error
+    );
+  }
+
+  const products = (data ?? []).map((product) => ({
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    subtitle: product.subtitle ?? "",
+    description: product.description ?? "",
+    color: product.color ?? "Negro",
+    sizes: Array.isArray(product.sizes)
+      ? product.sizes
+      : [],
+    image: product.image_url ?? "",
+    line: getCollectionName(product.collections),
+  }));
+
   const currentFilter = filters.includes(activeFilter)
     ? activeFilter
     : "Todos";
@@ -30,7 +108,8 @@ export default function Catalog({
     currentFilter === "Todos"
       ? products
       : products.filter(
-          (product) => product.line === currentFilter
+          (product) =>
+            product.line === currentFilter
         );
 
   return (
@@ -53,20 +132,23 @@ export default function Catalog({
           </h2>
 
           <p className="mt-4 max-w-2xl text-zinc-400">
-            Explora nuestros diseños organizados por línea y encuentra la
-            playera que mejor represente tu estilo.
+            Explora nuestros diseños organizados por línea y
+            encuentra la playera que mejor represente tu estilo.
           </p>
         </div>
 
         {/* Filtros */}
         <div className="mb-10 flex flex-wrap gap-3">
           {filters.map((filter) => {
-            const isActive = currentFilter === filter;
+            const isActive =
+              currentFilter === filter;
 
             const href =
               filter === "Todos"
                 ? "/#catalogo"
-                : `/?line=${encodeURIComponent(filter)}#catalogo`;
+                : `/?line=${encodeURIComponent(
+                    filter
+                  )}#catalogo`;
 
             return (
               <Link
@@ -107,17 +189,26 @@ export default function Catalog({
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => (
             <article
-              key={product.slug}
+              key={product.id}
               className="group overflow-hidden rounded-2xl border border-white/10 bg-[#101010] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
             >
-              <Link href={`/producto/${product.slug}`}>
-                <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={product.image}
-                    alt={`Playera ${product.name}`}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-110"
-                  />
+              <Link
+                href={`/producto/${product.slug}`}
+              >
+                <div className="relative aspect-square overflow-hidden bg-zinc-950">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={`Playera ${product.name}`}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-600">
+                      Imagen próximamente
+                    </div>
+                  )}
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
@@ -163,7 +254,8 @@ export default function Catalog({
             </h3>
 
             <p className="mt-3 text-zinc-500">
-              Todavía no hay diseños disponibles en esta colección.
+              Todavía no hay diseños disponibles en esta
+              colección.
             </p>
           </div>
         )}
