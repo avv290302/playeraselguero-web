@@ -163,14 +163,14 @@ export default function Navbar() {
         </Container>
 
         <div
-          className={`overflow-hidden border-t border-white/10 bg-[#080808] transition-all duration-300 lg:hidden ${
-            menuOpen
-              ? "max-h-[500px] opacity-100"
-              : "max-h-0 border-transparent opacity-0"
-          }`}
-        >
+  className={`border-t border-white/10 bg-[#080808] transition-all duration-300 lg:hidden ${
+    menuOpen
+      ? "max-h-[calc(100dvh-5rem)] overflow-y-auto opacity-100"
+      : "max-h-0 overflow-hidden border-transparent opacity-0"
+  }`}
+>
           <Container>
-            <div className="flex flex-col py-5">
+            <div className="flex flex-col pb-10 pt-5">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
