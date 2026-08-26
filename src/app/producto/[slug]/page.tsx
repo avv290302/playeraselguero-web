@@ -117,7 +117,9 @@ async function getProduct(slug: string) {
   return normalizeProduct(data);
 }
 
-async function getRelatedProducts(currentSlug: string) {
+async function getRelatedProducts(
+  currentSlug: string
+) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -184,6 +186,7 @@ export async function generateMetadata({
       product.name,
       product.line,
       "Playeras El Güero",
+      "playeras de gallos",
       "playeras personalizadas",
       "playeras galleras",
       "diseños de playeras",
@@ -247,8 +250,68 @@ export default async function ProductPage({
   const relatedProducts =
     await getRelatedProducts(product.slug);
 
+  const productUrl =
+    `https://playeraselguero.com/producto/${product.slug}`;
+
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+
+    "@id": `${productUrl}#product`,
+
+    name: product.name,
+
+    description: product.description,
+
+    url: productUrl,
+
+    sku: product.slug,
+
+    category: `Playeras de gallos - ${product.line}`,
+
+    image: product.image
+      ? [product.image]
+      : undefined,
+
+    color: product.color,
+
+    brand: {
+      "@type": "Brand",
+      name: "Playeras El Güero",
+    },
+
+    manufacturer: {
+      "@type": "Organization",
+      "@id":
+        "https://playeraselguero.com/#organization",
+      name: "Playeras El Güero",
+    },
+
+    additionalProperty: [
+      {
+        "@type": "PropertyValue",
+        name: "Colección",
+        value: product.line,
+      },
+      {
+        "@type": "PropertyValue",
+        name: "Tallas disponibles",
+        value: product.sizes.join(", "),
+      },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-[#050505]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            productStructuredData
+          ).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <Navbar />
 
       <ProductClient

@@ -30,6 +30,7 @@ export const metadata: Metadata = {
   keywords: [
     "Playeras El Güero",
     "playeras personalizadas",
+    "playeras de gallos",
     "playeras gallos",
     "playeras galleras",
     "diseños de playeras",
@@ -61,10 +62,9 @@ export const metadata: Metadata = {
     locale: "es_MX",
     url: "/",
     siteName: "Playeras El Güero",
-    title:
-      "Playeras El Güero | Diseños que representan tu pasión",
+    title: "Playeras El Güero | Playeras de Gallos y Diseños Personalizados",
     description:
-      "Diseños exclusivos y playeras personalizadas. Explora nuestro catálogo y cotiza directamente por WhatsApp.",
+      "Playeras de gallos, diseños exclusivos y playeras personalizadas en México. Explora nuestro catálogo y cotiza por WhatsApp.",
     images: [
       {
         url: "/images/hero/hero-shirt.png",
@@ -77,9 +77,9 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Playeras El Güero",
+    title: "Playeras El Güero | Playeras de Gallos",
     description:
-      "Diseños exclusivos y playeras personalizadas en México.",
+      "Diseños exclusivos, playeras de gallos y playeras personalizadas en México.",
     images: ["/images/hero/hero-shirt.png"],
   },
 
@@ -89,6 +89,54 @@ export const metadata: Metadata = {
   },
 };
 
+const structuredData = {
+  "@context": "https://schema.org",
+
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://playeraselguero.com/#organization",
+
+      name: "Playeras El Güero",
+
+      url: "https://playeraselguero.com",
+
+      logo: {
+        "@type": "ImageObject",
+        url: "https://playeraselguero.com/images/logo/logo.png",
+      },
+
+      description:
+        "Playeras de gallos, diseños exclusivos y playeras personalizadas en México.",
+
+      contactPoint: {
+        "@type": "ContactPoint",
+        telephone: "+52-492-223-0511",
+        contactType: "sales",
+        availableLanguage: ["Spanish"],
+      },
+    },
+
+    {
+      "@type": "WebSite",
+      "@id": "https://playeraselguero.com/#website",
+
+      url: "https://playeraselguero.com",
+
+      name: "Playeras El Güero",
+
+      description:
+        "Catálogo de playeras de gallos, diseños exclusivos y playeras personalizadas.",
+
+      inLanguage: "es-MX",
+
+      publisher: {
+        "@id": "https://playeraselguero.com/#organization",
+      },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -96,12 +144,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-MX">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
+      </head>
+
       <body
         className={`${montserrat.variable} ${bebasNeue.variable} antialiased`}
       >
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );
