@@ -55,18 +55,46 @@ function normalizeProduct(data: {
   subtitle: string | null;
   description: string | null;
   color: string | null;
+  price: number | string | null;
+  currency: string | null;
   sizes: unknown;
   image_url: string | null;
   collections: unknown;
 }) {
+  const parsedPrice =
+    data.price !== null
+      ? Number(data.price)
+      : null;
+
   return {
     id: data.id,
     slug: data.slug,
     name: data.name,
-    line: getCollectionName(data.collections),
-    subtitle: data.subtitle ?? "",
-    image: data.image_url ?? "",
-    color: data.color ?? "Negro",
+
+    line: getCollectionName(
+      data.collections
+    ),
+
+    subtitle:
+      data.subtitle ?? "",
+
+    description:
+      data.description ?? "",
+
+    image:
+      data.image_url ?? "",
+
+    color:
+      data.color ?? "Negro",
+
+    price:
+      parsedPrice !== null &&
+      Number.isFinite(parsedPrice)
+        ? parsedPrice
+        : null,
+
+    currency:
+      data.currency ?? "MXN",
 
     sizes: Array.isArray(data.sizes)
       ? data.sizes.filter(
@@ -74,32 +102,36 @@ function normalizeProduct(data: {
             typeof size === "string"
         )
       : [],
-
-    description: data.description ?? "",
   };
 }
 
-async function getProduct(slug: string) {
-  const supabase = await createClient();
+async function getProduct(
+  slug: string
+) {
+  const supabase =
+    await createClient();
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(`
-      id,
-      slug,
-      name,
-      subtitle,
-      description,
-      color,
-      sizes,
-      image_url,
-      collections (
-        name
-      )
-    `)
-    .eq("slug", slug)
-    .eq("active", true)
-    .maybeSingle();
+  const { data, error } =
+    await supabase
+      .from("products")
+      .select(`
+        id,
+        slug,
+        name,
+        subtitle,
+        description,
+        color,
+        price,
+        currency,
+        sizes,
+        image_url,
+        collections (
+          name
+        )
+      `)
+      .eq("slug", slug)
+      .eq("active", true)
+      .maybeSingle();
 
   if (error) {
     console.error(
@@ -120,29 +152,33 @@ async function getProduct(slug: string) {
 async function getRelatedProducts(
   currentSlug: string
 ) {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(`
-      id,
-      slug,
-      name,
-      subtitle,
-      description,
-      color,
-      sizes,
-      image_url,
-      collections (
-        name
-      )
-    `)
-    .eq("active", true)
-    .neq("slug", currentSlug)
-    .order("sort_order", {
-      ascending: true,
-    })
-    .limit(3);
+  const { data, error } =
+    await supabase
+      .from("products")
+      .select(`
+        id,
+        slug,
+        name,
+        subtitle,
+        description,
+        color,
+        price,
+        currency,
+        sizes,
+        image_url,
+        collections (
+          name
+        )
+      `)
+      .eq("active", true)
+      .neq("slug", currentSlug)
+      .order("sort_order", {
+        ascending: true,
+      })
+      .limit(3);
 
   if (error) {
     console.error(
@@ -153,7 +189,9 @@ async function getRelatedProducts(
     return [];
   }
 
-  return (data ?? []).map(normalizeProduct);
+  return (data ?? []).map(
+    normalizeProduct
+  );
 }
 
 export async function generateMetadata({
@@ -161,11 +199,13 @@ export async function generateMetadata({
 }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
 
-  const product = await getProduct(slug);
+  const product =
+    await getProduct(slug);
 
   if (!product) {
     return {
-      title: "Producto no encontrado",
+      title:
+        "Producto no encontrado",
 
       description:
         "El diseño solicitado no está disponible en Playeras El Güero.",
@@ -180,7 +220,8 @@ export async function generateMetadata({
   return {
     title: product.name,
 
-    description: `${product.name} de la colección ${product.line}. ${product.description}`,
+    description:
+      `${product.name} de la colección ${product.line}. ${product.description}`,
 
     keywords: [
       product.name,
@@ -193,17 +234,21 @@ export async function generateMetadata({
     ],
 
     alternates: {
-      canonical: `/producto/${product.slug}`,
+      canonical:
+        `/producto/${product.slug}`,
     },
 
     openGraph: {
       type: "website",
 
-      url: `/producto/${product.slug}`,
+      url:
+        `/producto/${product.slug}`,
 
-      title: `${product.name} | Playeras El Güero`,
+      title:
+        `${product.name} | Playeras El Güero`,
 
-      description: product.description,
+      description:
+        product.description,
 
       images: product.image
         ? [
@@ -211,18 +256,22 @@ export async function generateMetadata({
               url: product.image,
               width: 1080,
               height: 1080,
-              alt: `Playera ${product.name} - Playeras El Güero`,
+              alt:
+                `Playera ${product.name} - Playeras El Güero`,
             },
           ]
         : [],
     },
 
     twitter: {
-      card: "summary_large_image",
+      card:
+        "summary_large_image",
 
-      title: `${product.name} | Playeras El Güero`,
+      title:
+        `${product.name} | Playeras El Güero`,
 
-      description: product.description,
+      description:
+        product.description,
 
       images: product.image
         ? [product.image]
@@ -241,83 +290,144 @@ export default async function ProductPage({
 }: ProductPageProps) {
   const { slug } = await params;
 
-  const product = await getProduct(slug);
+  const product =
+    await getProduct(slug);
 
   if (!product) {
     notFound();
   }
 
   const relatedProducts =
-    await getRelatedProducts(product.slug);
+    await getRelatedProducts(
+      product.slug
+    );
 
   const productUrl =
     `https://playeraselguero.com/producto/${product.slug}`;
 
-  const productStructuredData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
+  const productStructuredData =
+    product.price !== null &&
+    product.price > 0
+      ? {
+          "@context":
+            "https://schema.org",
 
-    "@id": `${productUrl}#product`,
+          "@type":
+            "Product",
 
-    name: product.name,
+          "@id":
+            `${productUrl}#product`,
 
-    description: product.description,
+          name:
+            product.name,
 
-    url: productUrl,
+          description:
+            product.description,
 
-    sku: product.slug,
+          url:
+            productUrl,
 
-    category: `Playeras de gallos - ${product.line}`,
+          sku:
+            product.slug,
 
-    image: product.image
-      ? [product.image]
-      : undefined,
+          category:
+            `Playeras de gallos - ${product.line}`,
 
-    color: product.color,
+          image:
+            product.image
+              ? [product.image]
+              : undefined,
 
-    brand: {
-      "@type": "Brand",
-      name: "Playeras El Güero",
-    },
+          color:
+            product.color,
 
-    manufacturer: {
-      "@type": "Organization",
-      "@id":
-        "https://playeraselguero.com/#organization",
-      name: "Playeras El Güero",
-    },
+          brand: {
+            "@type":
+              "Brand",
 
-    additionalProperty: [
-      {
-        "@type": "PropertyValue",
-        name: "Colección",
-        value: product.line,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Tallas disponibles",
-        value: product.sizes.join(", "),
-      },
-    ],
-  };
+            name:
+              "Playeras El Güero",
+          },
+
+          manufacturer: {
+            "@type":
+              "Organization",
+
+            "@id":
+              "https://playeraselguero.com/#organization",
+
+            name:
+              "Playeras El Güero",
+          },
+
+          offers: {
+            "@type":
+              "Offer",
+
+            url:
+              productUrl,
+
+            priceCurrency:
+              product.currency,
+
+            price:
+              product.price.toFixed(
+                2
+              ),
+          },
+
+          additionalProperty: [
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Colección",
+
+              value:
+                product.line,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Tallas disponibles",
+
+              value:
+                product.sizes.join(
+                  ", "
+                ),
+            },
+          ],
+        }
+      : null;
 
   return (
     <main className="min-h-screen bg-[#050505]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            productStructuredData
-          ).replace(/</g, "\\u003c"),
-        }}
-      />
+      {productStructuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              productStructuredData
+            ).replace(
+              /</g,
+              "\\u003c"
+            ),
+          }}
+        />
+      )}
 
       <Navbar />
 
       <ProductClient
         key={product.slug}
         product={product}
-        relatedProducts={relatedProducts}
+        relatedProducts={
+          relatedProducts
+        }
       />
 
       <Footer />

@@ -54,6 +54,8 @@ export default async function EditProductPage({
         subtitle,
         description,
         color,
+        price,
+        currency,
         sizes,
         image_url,
         image_path,
@@ -121,6 +123,19 @@ export default async function EditProductPage({
         ? productData.color
         : "Negro",
 
+    price:
+      typeof productData.price === "number"
+        ? productData.price
+        : productData.price !== null &&
+            productData.price !== undefined
+          ? Number(productData.price)
+          : null,
+
+    currency:
+      typeof productData.currency === "string"
+        ? productData.currency
+        : "MXN",
+
     sizes: Array.isArray(productData.sizes)
       ? productData.sizes.filter(
           (size): size is string =>
@@ -186,8 +201,7 @@ export default async function EditProductPage({
         </h2>
 
         <p className="mt-3 max-w-2xl text-zinc-500">
-          Modifica los datos de la playera o reemplaza
-          su fotografía.
+          Modifica los datos de la playera, precio o reemplaza su fotografía.
         </p>
 
         <div className="mt-10">

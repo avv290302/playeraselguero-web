@@ -43,6 +43,8 @@ export default function NewProductForm({
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("Negro");
 
+  const [price, setPrice] = useState("");
+
   const [collectionId, setCollectionId] = useState(
     collections[0]?.id ?? ""
   );
@@ -63,6 +65,7 @@ export default function NewProductForm({
   const [featured, setFeatured] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
   const [errorMessage, setErrorMessage] =
     useState("");
 
@@ -70,7 +73,8 @@ export default function NewProductForm({
     setSizes((currentSizes) => {
       if (currentSizes.includes(size)) {
         return currentSizes.filter(
-          (currentSize) => currentSize !== size
+          (currentSize) =>
+            currentSize !== size
         );
       }
 
@@ -95,6 +99,25 @@ export default function NewProductForm({
     if (!collectionId) {
       setErrorMessage(
         "Selecciona una colección."
+      );
+      return;
+    }
+
+    const numericPrice = Number(price);
+
+    if (!price.trim()) {
+      setErrorMessage(
+        "Escribe el precio de la playera."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      numericPrice <= 0
+    ) {
+      setErrorMessage(
+        "Escribe un precio válido mayor a $0."
       );
       return;
     }
@@ -126,7 +149,8 @@ export default function NewProductForm({
       return;
     }
 
-    const maximumSize = 5 * 1024 * 1024;
+    const maximumSize =
+      5 * 1024 * 1024;
 
     if (image.size > maximumSize) {
       setErrorMessage(
@@ -149,7 +173,10 @@ export default function NewProductForm({
     const supabase = createClient();
 
     const originalExtension =
-      image.name.split(".").pop()?.toLowerCase();
+      image.name
+        .split(".")
+        .pop()
+        ?.toLowerCase();
 
     const extension =
       originalExtension === "jpeg"
@@ -165,11 +192,15 @@ export default function NewProductForm({
     const { error: uploadError } =
       await supabase.storage
         .from("product-images")
-        .upload(imagePath, image, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: image.type,
-        });
+        .upload(
+          imagePath,
+          image,
+          {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: image.type,
+          }
+        );
 
     if (uploadError) {
       console.error(uploadError);
@@ -190,7 +221,8 @@ export default function NewProductForm({
         .from("product-images")
         .getPublicUrl(imagePath);
 
-    const imageUrl = publicUrlData.publicUrl;
+    const imageUrl =
+      publicUrlData.publicUrl;
 
     /*
       3. Guardamos el producto en PostgreSQL.
@@ -202,22 +234,33 @@ export default function NewProductForm({
           name: name.trim(),
           slug,
           collection_id: collectionId,
-          subtitle: subtitle.trim() || null,
+
+          subtitle:
+            subtitle.trim() || null,
+
           description:
             description.trim() || null,
-          color: color.trim() || "Negro",
+
+          color:
+            color.trim() || "Negro",
+
+          price: numericPrice,
+          currency: "MXN",
+
           sizes,
+
           image_url: imageUrl,
           image_path: imagePath,
+
           active,
           featured,
+
           sort_order: 0,
         });
 
     /*
       Si falla la base de datos,
-      eliminamos la imagen que acabamos de subir
-      para no dejar archivos huérfanos.
+      eliminamos la imagen recién subida.
     */
     if (productError) {
       await supabase.storage
@@ -226,7 +269,9 @@ export default function NewProductForm({
 
       console.error(productError);
 
-      if (productError.code === "23505") {
+      if (
+        productError.code === "23505"
+      ) {
         setErrorMessage(
           "Ya existe un producto con ese nombre o slug."
         );
@@ -255,6 +300,7 @@ export default function NewProductForm({
           Información del producto
         </h3>
 
+        {/* NOMBRE */}
         <div className="mt-7">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Nombre *
@@ -264,7 +310,9 @@ export default function NewProductForm({
             type="text"
             value={name}
             onChange={(event) =>
-              setName(event.target.value)
+              setName(
+                event.target.value
+              )
             }
             placeholder="Ejemplo: Hatch 06"
             className="mt-3 w-full rounded-xl border border-white/10 bg-black px-4 py-4 outline-none transition focus:border-red-500"
@@ -272,11 +320,13 @@ export default function NewProductForm({
 
           {name && (
             <p className="mt-2 text-xs text-zinc-600">
-              URL: /producto/{createSlug(name)}
+              URL: /producto/
+              {createSlug(name)}
             </p>
           )}
         </div>
 
+        {/* COLECCIÓN */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Colección *
@@ -285,21 +335,26 @@ export default function NewProductForm({
           <select
             value={collectionId}
             onChange={(event) =>
-              setCollectionId(event.target.value)
+              setCollectionId(
+                event.target.value
+              )
             }
             className="mt-3 w-full rounded-xl border border-white/10 bg-black px-4 py-4 outline-none focus:border-red-500"
           >
-            {collections.map((collection) => (
-              <option
-                key={collection.id}
-                value={collection.id}
-              >
-                {collection.name}
-              </option>
-            ))}
+            {collections.map(
+              (collection) => (
+                <option
+                  key={collection.id}
+                  value={collection.id}
+                >
+                  {collection.name}
+                </option>
+              )
+            )}
           </select>
         </div>
 
+        {/* SUBTÍTULO */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Subtítulo
@@ -309,13 +364,56 @@ export default function NewProductForm({
             type="text"
             value={subtitle}
             onChange={(event) =>
-              setSubtitle(event.target.value)
+              setSubtitle(
+                event.target.value
+              )
             }
             placeholder="Ejemplo: Yellow Leg"
             className="mt-3 w-full rounded-xl border border-white/10 bg-black px-4 py-4 outline-none focus:border-red-500"
           />
         </div>
 
+        {/* PRECIO */}
+        <div className="mt-6">
+          <label
+            htmlFor="price"
+            className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400"
+          >
+            Precio *
+          </label>
+
+          <div className="relative mt-3">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-zinc-500">
+              $
+            </span>
+
+            <input
+              id="price"
+              type="number"
+              min="0.01"
+              step="0.01"
+              inputMode="decimal"
+              value={price}
+              onChange={(event) =>
+                setPrice(
+                  event.target.value
+                )
+              }
+              placeholder="350.00"
+              className="w-full rounded-xl border border-white/10 bg-black py-4 pl-9 pr-16 outline-none transition focus:border-red-500"
+            />
+
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-500">
+              MXN
+            </span>
+          </div>
+
+          <p className="mt-2 text-xs text-zinc-600">
+            Precio público por prenda.
+          </p>
+        </div>
+
+        {/* COLOR */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Color
@@ -325,13 +423,16 @@ export default function NewProductForm({
             type="text"
             value={color}
             onChange={(event) =>
-              setColor(event.target.value)
+              setColor(
+                event.target.value
+              )
             }
             placeholder="Negro"
             className="mt-3 w-full rounded-xl border border-white/10 bg-black px-4 py-4 outline-none focus:border-red-500"
           />
         </div>
 
+        {/* DESCRIPCIÓN */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Descripción
@@ -340,7 +441,9 @@ export default function NewProductForm({
           <textarea
             value={description}
             onChange={(event) =>
-              setDescription(event.target.value)
+              setDescription(
+                event.target.value
+              )
             }
             rows={5}
             placeholder="Describe brevemente el diseño..."
@@ -348,47 +451,51 @@ export default function NewProductForm({
           />
         </div>
 
+        {/* TALLAS */}
         <div className="mt-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Tallas disponibles *
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            {availableSizes.map((size) => {
-              const selected =
-                sizes.includes(size);
+            {availableSizes.map(
+              (size) => {
+                const selected =
+                  sizes.includes(size);
 
-              return (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() =>
-                    toggleSize(size)
-                  }
-                  className={`rounded-lg border px-5 py-3 text-sm font-bold transition ${
-                    selected
-                      ? "border-red-500 bg-red-600 text-white"
-                      : "border-white/10 bg-black text-zinc-500 hover:border-white/30"
-                  }`}
-                >
-                  {size}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() =>
+                      toggleSize(size)
+                    }
+                    className={`rounded-lg border px-5 py-3 text-sm font-bold transition ${
+                      selected
+                        ? "border-red-500 bg-red-600 text-white"
+                        : "border-white/10 bg-black text-zinc-500 hover:border-white/30"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
       </div>
 
       {/* IMAGEN Y PUBLICACIÓN */}
       <div>
+        {/* IMAGEN */}
         <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8">
           <h3 className="text-xl font-bold">
             Imagen
           </h3>
 
           <p className="mt-2 text-sm leading-6 text-zinc-500">
-            Esta imagen se almacenará directamente
-            en Supabase Storage.
+            Esta imagen se almacenará
+            directamente en Supabase Storage.
           </p>
 
           <label className="mt-6 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-black p-6 text-center transition hover:border-red-500/50">
@@ -430,12 +537,18 @@ export default function NewProductForm({
               </p>
 
               <p className="mt-1 text-xs text-zinc-600">
-                {(image.size / 1024 / 1024).toFixed(2)} MB
+                {(
+                  image.size /
+                  1024 /
+                  1024
+                ).toFixed(2)}{" "}
+                MB
               </p>
             </div>
           )}
         </div>
 
+        {/* PUBLICACIÓN */}
         <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8">
           <h3 className="text-xl font-bold">
             Publicación
@@ -471,7 +584,8 @@ export default function NewProductForm({
               </p>
 
               <p className="mt-1 text-xs text-zinc-600">
-                Lo usaremos después para destacar diseños.
+                Lo usaremos después para
+                destacar diseños.
               </p>
             </div>
 

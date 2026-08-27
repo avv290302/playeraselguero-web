@@ -17,6 +17,8 @@ type Product = {
   color: string;
   sizes: string[];
   description: string;
+  price: number | null;
+  currency: string;
 };
 
 type ProductClientProps = {
@@ -24,42 +26,77 @@ type ProductClientProps = {
   relatedProducts: Product[];
 };
 
+function formatPrice(
+  price: number | null,
+  currency: string
+) {
+  if (price === null || price <= 0) {
+    return null;
+  }
+
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(price);
+}
+
 export default function ProductClient({
   product,
   relatedProducts,
 }: ProductClientProps) {
   const { addItem, openCart } = useCart();
 
-  const [selectedSize, setSelectedSize] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [addedMessage, setAddedMessage] = useState("");
+  const [selectedSize, setSelectedSize] =
+    useState("");
+
+  const [quantity, setQuantity] =
+    useState(1);
+
+  const [addedMessage, setAddedMessage] =
+    useState("");
+
+  const formattedPrice = formatPrice(
+    product.price,
+    product.currency
+  );
 
   const decreaseQuantity = () => {
-    setQuantity((current) => Math.max(1, current - 1));
+    setQuantity((current) =>
+      Math.max(1, current - 1)
+    );
   };
 
   const increaseQuantity = () => {
-    setQuantity((current) => current + 1);
+    setQuantity(
+      (current) => current + 1
+    );
   };
 
   function handleAddToCart() {
     if (!selectedSize) {
       return;
     }
-addItem({
+
+    addItem({
   id: product.id,
   slug: product.slug,
   name: product.name,
   image: product.image,
   size: selectedSize,
   quantity,
+  price: product.price,
+  currency: product.currency,
 });
 
-openCart();
+    openCart();
 
     setAddedMessage(
       `${product.name} · talla ${selectedSize} · ${quantity} ${
-        quantity === 1 ? "pieza agregada" : "piezas agregadas"
+        quantity === 1
+          ? "pieza agregada"
+          : "piezas agregadas"
       }`
     );
 
@@ -110,6 +147,29 @@ openCart();
                 </span>
               </div>
 
+              {/* PRECIO */}
+              <div className="mt-7">
+                {formattedPrice ? (
+                  <div className="flex items-end gap-3">
+                    <span className="text-4xl font-black tracking-tight text-white sm:text-5xl">
+                      {formattedPrice}
+                    </span>
+
+                    <span className="pb-1 text-sm font-bold uppercase tracking-wider text-zinc-500">
+                      {product.currency}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold text-zinc-500">
+                    Precio próximamente
+                  </p>
+                )}
+
+                <p className="mt-2 text-xs text-zinc-600">
+                  Precio por prenda.
+                </p>
+              </div>
+
               <p className="mt-8 max-w-xl leading-7 text-zinc-400">
                 {product.description}
               </p>
@@ -144,30 +204,38 @@ openCart();
 
                   {selectedSize && (
                     <span className="text-sm font-semibold text-red-500">
-                      Seleccionada: {selectedSize}
+                      Seleccionada:{" "}
+                      {selectedSize}
                     </span>
                   )}
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {product.sizes.map((size) => {
-                    const isSelected = selectedSize === size;
+                  {product.sizes.map(
+                    (size) => {
+                      const isSelected =
+                        selectedSize === size;
 
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => setSelectedSize(size)}
-                        className={`min-w-12 rounded-lg border px-4 py-3 text-sm font-bold transition ${
-                          isSelected
-                            ? "border-red-500 bg-red-600 text-white"
-                            : "border-white/15 bg-transparent text-white hover:border-red-500"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSize(
+                              size
+                            )
+                          }
+                          className={`min-w-12 rounded-lg border px-4 py-3 text-sm font-bold transition ${
+                            isSelected
+                              ? "border-red-500 bg-red-600 text-white"
+                              : "border-white/15 bg-transparent text-white hover:border-red-500"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               </div>
 
@@ -180,7 +248,9 @@ openCart();
                 <div className="mt-4 inline-flex items-center overflow-hidden rounded-lg border border-white/15">
                   <button
                     type="button"
-                    onClick={decreaseQuantity}
+                    onClick={
+                      decreaseQuantity
+                    }
                     className="flex h-12 w-12 items-center justify-center text-xl font-bold transition hover:bg-white/10"
                     aria-label="Disminuir cantidad"
                   >
@@ -193,7 +263,9 @@ openCart();
 
                   <button
                     type="button"
-                    onClick={increaseQuantity}
+                    onClick={
+                      increaseQuantity
+                    }
                     className="flex h-12 w-12 items-center justify-center text-xl font-bold transition hover:bg-white/10"
                     aria-label="Aumentar cantidad"
                   >
@@ -204,7 +276,9 @@ openCart();
 
               {!selectedSize && (
                 <p className="mt-5 text-sm text-zinc-500">
-                  Selecciona una talla antes de agregar al carrito.
+                  Selecciona una talla
+                  antes de agregar al
+                  carrito.
                 </p>
               )}
 
@@ -218,8 +292,12 @@ openCart();
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <button
                   type="button"
-                  onClick={handleAddToCart}
-                  disabled={!selectedSize}
+                  onClick={
+                    handleAddToCart
+                  }
+                  disabled={
+                    !selectedSize
+                  }
                   className={`rounded-lg px-7 py-4 text-center text-sm font-bold uppercase tracking-wide transition ${
                     selectedSize
                       ? "bg-red-600 text-white hover:-translate-y-0.5 hover:bg-red-500"
@@ -253,56 +331,91 @@ openCart();
               </p>
 
               <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-4xl uppercase leading-none tracking-wide sm:text-5xl">
-                También te puede interesar
+                También te puede
+                interesar
               </h2>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {relatedProducts.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/producto/${item.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
-                >
-                  <div className="relative aspect-square overflow-hidden">
-                    {item.image ? (
-                      <Image
-                        src={item.image}
-                        alt={`Playera ${item.name}`}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover transition duration-700 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-                        Sin imagen
+              {relatedProducts.map(
+                (item) => {
+                  const itemPrice =
+                    formatPrice(
+                      item.price,
+                      item.currency
+                    );
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/producto/${item.slug}`}
+                      className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
+                    >
+                      <div className="relative aspect-square overflow-hidden">
+                        {item.image ? (
+                          <Image
+                            src={
+                              item.image
+                            }
+                            alt={`Playera ${item.name}`}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover transition duration-700 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-zinc-600">
+                            Sin imagen
+                          </div>
+                        )}
+
+                        <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
+                          {item.line}
+                        </div>
                       </div>
-                    )}
 
-                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
-                      {item.line}
-                    </div>
-                  </div>
+                      <div className="p-5">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                          Colección{" "}
+                          {item.line}
+                        </p>
 
-                  <div className="p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
-                      Colección {item.line}
-                    </p>
+                        <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase text-white">
+                          {item.name}
+                        </h3>
 
-                    <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase text-white">
-                      {item.name}
-                    </h3>
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {
+                            item.subtitle
+                          }
+                        </p>
 
-                    <p className="mt-1 text-sm text-zinc-500">
-                      {item.subtitle}
-                    </p>
+                        {itemPrice ? (
+                          <div className="mt-4 flex items-end gap-2">
+                            <span className="text-xl font-black text-white">
+                              {itemPrice}
+                            </span>
 
-                    <div className="mt-5 text-sm font-bold uppercase tracking-wider text-red-500">
-                      Ver diseño →
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                            <span className="pb-0.5 text-xs font-bold text-zinc-500">
+                              {
+                                item.currency
+                              }
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="mt-4 text-sm text-zinc-600">
+                            Precio
+                            próximamente
+                          </p>
+                        )}
+
+                        <div className="mt-5 text-sm font-bold uppercase tracking-wider text-red-500">
+                          Ver diseño →
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                }
+              )}
             </div>
           </Container>
         </section>

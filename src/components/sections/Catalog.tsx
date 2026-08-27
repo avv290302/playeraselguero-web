@@ -27,7 +27,6 @@ function getCollectionName(collection: unknown) {
     "name" in collection
   ) {
     const name = (collection as { name?: unknown }).name;
-
     return typeof name === "string" ? name : "";
   }
 
@@ -53,6 +52,22 @@ function getCollectionName(collection: unknown) {
   return "";
 }
 
+function formatPrice(
+  price: number | null,
+  currency: string
+) {
+  if (price === null || price <= 0) {
+    return null;
+  }
+
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(price);
+}
+
 export default async function Catalog({
   activeFilter = "Todos",
 }: CatalogProps) {
@@ -67,6 +82,8 @@ export default async function Catalog({
       subtitle,
       description,
       color,
+      price,
+      currency,
       sizes,
       image_url,
       sort_order,
@@ -86,19 +103,43 @@ export default async function Catalog({
     );
   }
 
-  const products = (data ?? []).map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    name: product.name,
-    subtitle: product.subtitle ?? "",
-    description: product.description ?? "",
-    color: product.color ?? "Negro",
-    sizes: Array.isArray(product.sizes)
-      ? product.sizes
-      : [],
-    image: product.image_url ?? "",
-    line: getCollectionName(product.collections),
-  }));
+  const products = (data ?? []).map((product) => {
+    const parsedPrice =
+      product.price !== null &&
+      product.price !== undefined
+        ? Number(product.price)
+        : null;
+
+    return {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      subtitle: product.subtitle ?? "",
+      description: product.description ?? "",
+      color: product.color ?? "Negro",
+
+      price:
+        parsedPrice !== null &&
+        Number.isFinite(parsedPrice)
+          ? parsedPrice
+          : null,
+
+      currency:
+        typeof product.currency === "string"
+          ? product.currency
+          : "MXN",
+
+      sizes: Array.isArray(product.sizes)
+        ? product.sizes
+        : [],
+
+      image: product.image_url ?? "",
+
+      line: getCollectionName(
+        product.collections
+      ),
+    };
+  });
 
   const currentFilter = filters.includes(activeFilter)
     ? activeFilter
@@ -117,11 +158,9 @@ export default async function Catalog({
       id="catalogo"
       className="relative overflow-hidden bg-[#050505] py-24"
     >
-      {/* Luz decorativa */}
       <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-red-600/5 blur-[150px]" />
 
       <Container className="relative z-10">
-        {/* Encabezado */}
         <div className="mb-12">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
             Catálogo
@@ -137,7 +176,7 @@ export default async function Catalog({
           </p>
         </div>
 
-        {/* Filtros */}
+        {/* FILTROS */}
         <div className="mb-10 flex flex-wrap gap-3">
           {filters.map((filter) => {
             const isActive =
@@ -166,7 +205,7 @@ export default async function Catalog({
           })}
         </div>
 
-        {/* Información */}
+        {/* CONTADOR */}
         <div className="mb-8 flex items-center justify-between gap-4">
           <p className="text-sm text-zinc-500">
             Mostrando{" "}
@@ -185,68 +224,92 @@ export default async function Catalog({
           )}
         </div>
 
-        {/* Productos */}
+        {/* PRODUCTOS */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <article
-              key={product.id}
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-[#101010] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
-            >
-              <Link
-                href={`/producto/${product.slug}`}
+          {filteredProducts.map((product) => {
+            const formattedPrice =
+              formatPrice(
+                product.price,
+                product.currency
+              );
+
+            return (
+              <article
+                key={product.id}
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-[#101010] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
               >
-                <div className="relative aspect-square overflow-hidden bg-zinc-950">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={`Playera ${product.name}`}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition duration-700 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-600">
-                      Imagen próximamente
-                    </div>
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                  <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
-                    {product.line}
-                  </div>
-                </div>
-              </Link>
-
-              <div className="p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
-                  Colección {product.line}
-                </p>
-
-                <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase tracking-wide text-white">
-                  {product.name}
-                </h3>
-
-                <p className="mt-1 text-sm text-zinc-500">
-                  {product.subtitle}
-                </p>
-
-                <p className="mt-4 line-clamp-2 text-sm leading-6 text-zinc-400">
-                  {product.description}
-                </p>
-
                 <Link
                   href={`/producto/${product.slug}`}
-                  className="mt-6 block rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-white transition hover:bg-red-500"
                 >
-                  Ver diseño
+                  <div className="relative aspect-square overflow-hidden bg-zinc-950">
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={`Playera ${product.name}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transition duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-600">
+                        Imagen próximamente
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
+                      {product.line}
+                    </div>
+                  </div>
                 </Link>
-              </div>
-            </article>
-          ))}
+
+                <div className="p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                    Colección {product.line}
+                  </p>
+
+                  <h3 className="mt-2 font-[family-name:var(--font-bebas)] text-3xl uppercase tracking-wide text-white">
+                    {product.name}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {product.subtitle}
+                  </p>
+
+                  {/* PRECIO */}
+                  {formattedPrice ? (
+                    <div className="mt-4 flex items-end gap-2">
+                      <span className="text-2xl font-black text-white">
+                        {formattedPrice}
+                      </span>
+
+                      <span className="pb-1 text-xs font-bold text-zinc-500">
+                        {product.currency}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm font-semibold text-zinc-600">
+                      Precio próximamente
+                    </p>
+                  )}
+
+                  <p className="mt-4 line-clamp-2 text-sm leading-6 text-zinc-400">
+                    {product.description}
+                  </p>
+
+                  <Link
+                    href={`/producto/${product.slug}`}
+                    className="mt-6 block rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-white transition hover:bg-red-500"
+                  >
+                    Ver diseño
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
-        {/* Sin resultados */}
         {filteredProducts.length === 0 && (
           <div className="py-20 text-center">
             <h3 className="font-[family-name:var(--font-bebas)] text-4xl uppercase text-white">

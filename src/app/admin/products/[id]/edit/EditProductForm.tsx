@@ -26,6 +26,9 @@ type Product = {
   image_path: string | null;
   active: boolean;
   featured: boolean;
+
+  price?: number | null;
+  currency?: string;
 };
 
 type EditProductFormProps = {
@@ -68,6 +71,14 @@ export default function EditProductForm({
 
   const [color, setColor] =
     useState(product.color);
+
+  const [price, setPrice] =
+    useState(
+      product.price !== null &&
+        product.price !== undefined
+        ? String(product.price)
+        : ""
+    );
 
   const [collectionId, setCollectionId] =
     useState(product.collection_id);
@@ -124,6 +135,25 @@ export default function EditProductForm({
       return;
     }
 
+    if (!price.trim()) {
+      setErrorMessage(
+        "Escribe el precio del producto."
+      );
+      return;
+    }
+
+    const numericPrice = Number(price);
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      numericPrice <= 0
+    ) {
+      setErrorMessage(
+        "Escribe un precio válido mayor a $0."
+      );
+      return;
+    }
+
     if (sizes.length === 0) {
       setErrorMessage(
         "Selecciona al menos una talla."
@@ -138,14 +168,21 @@ export default function EditProductForm({
         "image/webp",
       ];
 
-      if (!allowedTypes.includes(newImage.type)) {
+      if (
+        !allowedTypes.includes(
+          newImage.type
+        )
+      ) {
         setErrorMessage(
           "La nueva imagen debe ser PNG, JPG o WEBP."
         );
         return;
       }
 
-      if (newImage.size > 5 * 1024 * 1024) {
+      if (
+        newImage.size >
+        5 * 1024 * 1024
+      ) {
         setErrorMessage(
           "La nueva imagen no puede pesar más de 5 MB."
         );
@@ -166,8 +203,11 @@ export default function EditProductForm({
 
     const supabase = createClient();
 
-    let newImagePath: string | null = null;
-    let newImageUrl: string | null = null;
+    let newImagePath: string | null =
+      null;
+
+    let newImageUrl: string | null =
+      null;
 
     /*
       Si seleccionaste una nueva imagen,
@@ -198,7 +238,8 @@ export default function EditProductForm({
             {
               cacheControl: "3600",
               upsert: false,
-              contentType: newImage.type,
+              contentType:
+                newImage.type,
             }
           );
 
@@ -214,7 +255,9 @@ export default function EditProductForm({
       const { data: publicUrlData } =
         supabase.storage
           .from("product-images")
-          .getPublicUrl(newImagePath);
+          .getPublicUrl(
+            newImagePath
+          );
 
       newImageUrl =
         publicUrlData.publicUrl;
@@ -225,17 +268,31 @@ export default function EditProductForm({
     */
     const changes = {
       name: name.trim(),
+
       slug,
-      collection_id: collectionId,
+
+      collection_id:
+        collectionId,
+
       subtitle:
         subtitle.trim() || null,
+
       description:
         description.trim() || null,
+
       color:
         color.trim() || "Negro",
+
+      price: numericPrice,
+
+      currency: "MXN",
+
       sizes,
+
       active,
+
       featured,
+
       updated_at:
         new Date().toISOString(),
 
@@ -258,21 +315,24 @@ export default function EditProductForm({
       await supabase
         .from("products")
         .update(changes)
-        .eq("id", product.id);
+        .eq(
+          "id",
+          product.id
+        );
 
     if (updateError) {
-      /*
-        Si la actualización falla pero
-        ya habíamos subido una imagen nueva,
-        la eliminamos para no dejar basura.
-      */
       if (newImagePath) {
         await supabase.storage
           .from("product-images")
-          .remove([newImagePath]);
+          .remove([
+            newImagePath,
+          ]);
       }
 
-      if (updateError.code === "23505") {
+      if (
+        updateError.code ===
+        "23505"
+      ) {
         setErrorMessage(
           "Ya existe otro producto con ese nombre o URL."
         );
@@ -287,9 +347,8 @@ export default function EditProductForm({
     }
 
     /*
-      Si la base ya se actualizó correctamente
-      y reemplazamos la fotografía,
-      ahora sí eliminamos la anterior.
+      Si reemplazamos imagen,
+      eliminamos la anterior.
     */
     if (
       newImagePath &&
@@ -330,6 +389,7 @@ export default function EditProductForm({
           Información del producto
         </h3>
 
+        {/* NOMBRE */}
         <div className="mt-7">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Nombre *
@@ -354,6 +414,7 @@ export default function EditProductForm({
           )}
         </div>
 
+        {/* COLECCIÓN */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Colección *
@@ -371,16 +432,23 @@ export default function EditProductForm({
             {collections.map(
               (collection) => (
                 <option
-                  key={collection.id}
-                  value={collection.id}
+                  key={
+                    collection.id
+                  }
+                  value={
+                    collection.id
+                  }
                 >
-                  {collection.name}
+                  {
+                    collection.name
+                  }
                 </option>
               )
             )}
           </select>
         </div>
 
+        {/* SUBTÍTULO */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Subtítulo
@@ -398,6 +466,43 @@ export default function EditProductForm({
           />
         </div>
 
+        {/* PRECIO */}
+        <div className="mt-6">
+          <label
+            htmlFor="price"
+            className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400"
+          >
+            Precio *
+          </label>
+
+          <div className="relative mt-3">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-zinc-500">
+              $
+            </span>
+
+            <input
+              id="price"
+              type="number"
+              min="0.01"
+              step="0.01"
+              inputMode="decimal"
+              value={price}
+              onChange={(event) =>
+                setPrice(
+                  event.target.value
+                )
+              }
+              placeholder="350.00"
+              className="w-full rounded-xl border border-white/10 bg-black py-4 pl-9 pr-16 outline-none transition focus:border-red-500"
+            />
+
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-500">
+              MXN
+            </span>
+          </div>
+        </div>
+
+        {/* COLOR */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Color
@@ -415,6 +520,7 @@ export default function EditProductForm({
           />
         </div>
 
+        {/* DESCRIPCIÓN */}
         <div className="mt-6">
           <label className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Descripción
@@ -432,6 +538,7 @@ export default function EditProductForm({
           />
         </div>
 
+        {/* TALLAS */}
         <div className="mt-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             Tallas disponibles
@@ -448,7 +555,9 @@ export default function EditProductForm({
                     key={size}
                     type="button"
                     onClick={() =>
-                      toggleSize(size)
+                      toggleSize(
+                        size
+                      )
                     }
                     className={`rounded-lg border px-5 py-3 text-sm font-bold transition ${
                       selected
@@ -465,8 +574,9 @@ export default function EditProductForm({
         </div>
       </div>
 
-      {/* IMAGEN */}
+      {/* DERECHA */}
       <div>
+        {/* IMAGEN */}
         <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8">
           <h3 className="text-xl font-bold">
             Imagen
@@ -475,7 +585,9 @@ export default function EditProductForm({
           {product.image_url && (
             <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-black">
               <img
-                src={product.image_url}
+                src={
+                  product.image_url
+                }
                 alt={product.name}
                 className="aspect-square w-full object-cover"
               />
@@ -492,7 +604,8 @@ export default function EditProductForm({
             </span>
 
             <span className="mt-2 text-xs text-zinc-600">
-              PNG, JPG o WEBP · máximo 5 MB
+              PNG, JPG o WEBP · máximo
+              5 MB
             </span>
 
             <input
