@@ -6,38 +6,45 @@ import Container from "@/components/common/Container";
 const collections = [
   {
     name: "Blancos",
-    image: "/images/products/blancos-01.png",
-    description: "Diseños claros y diferentes para quienes buscan otro estilo.",
+    image: "/images/collections/blancos.webp",
+    description:
+      "Diseños claros y diferentes para quienes buscan otro estilo.",
   },
   {
     name: "Brown Red",
-    image: "/images/products/brown-red-01.png",
-    description: "Diseños con carácter inspirados en la línea Brown Red.",
+    image: "/images/collections/brown-red.webp",
+    description:
+      "Diseños con carácter inspirados en la línea Brown Red.",
   },
   {
     name: "Hatch",
-    image: "/images/products/hatch-01.png",
-    description: "Explora todos nuestros diseños inspirados en la línea Hatch.",
+    image: "/images/collections/hatch.webp",
+    description:
+      "Explora todos nuestros diseños inspirados en la línea Hatch.",
   },
   {
     name: "Kelso",
-    image: "/images/products/kelso-01.png",
-    description: "Diseños inspirados en una de las líneas más reconocidas.",
+    image: "/images/collections/kelso.webp",
+    description:
+      "Diseños inspirados en una de las líneas más reconocidas.",
   },
   {
     name: "Regular Grey",
-    image: "/images/products/regular-grey-01.png",
-    description: "Una colección con diseños inspirados en Regular Grey.",
+    image: "/images/collections/regular-grey.webp",
+    description:
+      "Una colección con diseños inspirados en Regular Grey.",
   },
   {
     name: "Round Head",
-    image: "/images/products/round-head-01.png",
-    description: "Explora nuestros diseños inspirados en la línea Round Head.",
+    image: "/images/collections/round-head.webp",
+    description:
+      "Explora nuestros diseños inspirados en la línea Round Head.",
   },
   {
     name: "Sweater",
-    image: "/images/products/sweater-01.png",
-    description: "Diseños modernos inspirados en la reconocida línea Sweater.",
+    image: "/images/collections/sweater.webp",
+    description:
+      "Diseños modernos inspirados en la reconocida línea Sweater.",
   },
 ];
 
@@ -57,19 +64,20 @@ export default function Collections() {
 
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div>
-             <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase leading-[0.95] tracking-wide text-white sm:text-6xl">
-  <span className="block sm:inline">
-    Nuestras
-  </span>
+              <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase leading-[0.95] tracking-wide text-white sm:text-6xl">
+                <span className="block sm:inline">
+                  Nuestras
+                </span>
 
-  <span className="block text-red-500 sm:ml-3 sm:inline">
-    colecciones
-  </span>
-</h2>
+                <span className="block text-red-500 sm:ml-3 sm:inline">
+                  colecciones
+                </span>
+              </h2>
 
               <p className="mt-4 max-w-2xl text-zinc-400">
-                Explora nuestras líneas y encuentra diseños creados para
-                representar tu pasión con identidad, estilo y personalidad.
+                Explora nuestras líneas y encuentra diseños
+                creados para representar tu pasión con
+                identidad, estilo y personalidad.
               </p>
             </div>
 
@@ -94,8 +102,9 @@ export default function Collections() {
               <div className="relative aspect-square overflow-hidden">
                 <Image
                   src={collection.image}
-                  alt={`Colección ${collection.name}`}
+                  alt={`Gallo de la línea ${collection.name}`}
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover transition duration-700 group-hover:scale-110"
                 />
 
