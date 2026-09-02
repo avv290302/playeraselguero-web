@@ -255,16 +255,11 @@ export default function Customizer() {
 
             <div className="h-[580px] w-full min-w-0 sm:h-[650px] lg:h-[700px]">
               <Shirt3D
-                color={
-                  selectedColor.hex
-                }
-                frontDesign={
-                  frontDesign.preview
-                }
-                backDesign={
-                  backDesign.preview
-                }
-              />
+  color={selectedColor.hex}
+  frontDesign={frontDesign.preview}
+  backDesign={backDesign.preview}
+  activeSide={activeSide}
+/>
             </div>
 
             <div className="border-t border-white/10 px-5 py-4 sm:px-6">

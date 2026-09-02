@@ -6,9 +6,14 @@ import {
   useMemo,
   useRef,
   useState,
+  type RefObject,
 } from "react";
 
-import { Canvas } from "@react-three/fiber";
+import {
+  Canvas,
+  useFrame,
+  useThree,
+} from "@react-three/fiber";
 
 import {
   ContactShadows,
@@ -17,12 +22,17 @@ import {
   useGLTF,
 } from "@react-three/drei";
 
+import type {
+  OrbitControls as OrbitControlsImpl,
+} from "three-stdlib";
+
 import {
   Box3,
   FrontSide,
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
+  Spherical,
   SRGBColorSpace,
   Texture,
   TextureLoader,
@@ -33,10 +43,15 @@ import {
 /* TIPOS */
 /* ========================================================= */
 
+type Side =
+  | "front"
+  | "back";
+
 type Shirt3DProps = {
   color?: string;
   frontDesign?: string;
   backDesign?: string;
+  activeSide?: Side;
 };
 
 type ShirtModelProps = {
@@ -49,20 +64,7 @@ type ShirtModelProps = {
 /* CONFIGURACIÓN */
 /* ========================================================= */
 
-/*
- * Regresamos la playera exactamente
- * a la escala que ya funcionaba bien.
- *
- * Ya no hacemos desplazamientos
- * especiales para Android.
- *
- * El problema estaba en el layout.
- */
 const MODEL_SCALE = 2.65;
-
-/* ========================================================= */
-/* ÁREA DE IMPRESIÓN */
-/* ========================================================= */
 
 const PRINT_WIDTH = 0.68;
 const PRINT_HEIGHT = 0.76;
@@ -93,8 +95,8 @@ function getDisplayColor(
 
   /*
    * Negro ligeramente levantado
-   * para que se distingan los
-   * detalles en pantallas oscuras.
+   * para conservar pliegues,
+   * costuras y volumen.
    */
   if (
     normalized === "#111111" ||
@@ -232,10 +234,6 @@ function createPrintGeometry() {
         1
       );
 
-    /*
-     * Curvatura suave para seguir
-     * el volumen del pecho.
-     */
     const curve =
       -0.045 *
       normalizedX *
@@ -425,7 +423,7 @@ function ShirtModel({
     }, [modelCenter]);
 
   /* ======================================================= */
-  /* GEOMETRÍA ESTAMPADO */
+  /* GEOMETRÍA DEL ESTAMPADO */
   /* ======================================================= */
 
   const printGeometry =
@@ -442,7 +440,7 @@ function ShirtModel({
   }, [printGeometry]);
 
   /* ======================================================= */
-  /* MATERIAL */
+  /* MATERIAL PLAYERA */
   /* ======================================================= */
 
   useEffect(() => {
@@ -474,12 +472,6 @@ function ShirtModel({
               displayColor
             );
 
-            /*
-             * Estos valores son los
-             * que hicieron que la
-             * playera negra se viera
-             * correctamente en Huawei.
-             */
             material.roughness =
               0.62;
 
@@ -532,7 +524,7 @@ function ShirtModel({
       />
 
       {/* ================================================= */}
-      {/* FRENTE */}
+      {/* ESTAMPADO FRONTAL */}
       {/* ================================================= */}
 
       {frontTexture && (
@@ -543,9 +535,7 @@ function ShirtModel({
           geometry={
             printGeometry
           }
-          renderOrder={
-            10
-          }
+          renderOrder={10}
         >
           <meshBasicMaterial
             map={
@@ -553,19 +543,11 @@ function ShirtModel({
             }
             transparent
             opacity={1}
-            alphaTest={
-              0.01
-            }
-            depthWrite={
-              false
-            }
+            alphaTest={0.01}
+            depthWrite={false}
             depthTest
-            side={
-              FrontSide
-            }
-            toneMapped={
-              false
-            }
+            side={FrontSide}
+            toneMapped={false}
             polygonOffset
             polygonOffsetFactor={
               -4
@@ -575,7 +557,7 @@ function ShirtModel({
       )}
 
       {/* ================================================= */}
-      {/* ESPALDA */}
+      {/* ESTAMPADO TRASERO */}
       {/* ================================================= */}
 
       {backTexture && (
@@ -591,9 +573,7 @@ function ShirtModel({
           geometry={
             printGeometry
           }
-          renderOrder={
-            10
-          }
+          renderOrder={10}
         >
           <meshBasicMaterial
             map={
@@ -601,19 +581,11 @@ function ShirtModel({
             }
             transparent
             opacity={1}
-            alphaTest={
-              0.01
-            }
-            depthWrite={
-              false
-            }
+            alphaTest={0.01}
+            depthWrite={false}
             depthTest
-            side={
-              FrontSide
-            }
-            toneMapped={
-              false
-            }
+            side={FrontSide}
+            toneMapped={false}
             polygonOffset
             polygonOffsetFactor={
               -4
@@ -623,6 +595,204 @@ function ShirtModel({
       )}
     </>
   );
+}
+
+/* ========================================================= */
+/* ANIMACIÓN FRENTE / ESPALDA */
+/* ========================================================= */
+
+type SideCameraControllerProps = {
+  activeSide: Side;
+
+  controlsRef:
+    RefObject<OrbitControlsImpl | null>;
+};
+
+function SideCameraController({
+  activeSide,
+  controlsRef,
+}: SideCameraControllerProps) {
+  const { camera } =
+    useThree();
+
+  const target =
+    useMemo(
+      () =>
+        new Vector3(
+          0,
+          0,
+          0
+        ),
+      []
+    );
+
+  const sphericalRef =
+    useRef(
+      new Spherical()
+    );
+
+  const positionRef =
+    useRef(
+      new Vector3()
+    );
+
+  const animatingRef =
+    useRef(false);
+
+  const targetAngleRef =
+    useRef(0);
+
+  /* ======================================================= */
+  /* CUANDO CAMBIA FRENTE / ESPALDA */
+  /* ======================================================= */
+
+  useEffect(() => {
+    targetAngleRef.current =
+      activeSide ===
+      "front"
+        ? 0
+        : Math.PI;
+
+    animatingRef.current =
+      true;
+  }, [activeSide]);
+
+  /* ======================================================= */
+  /* ANIMACIÓN POR FRAME */
+  /* ======================================================= */
+
+  useFrame(
+    (
+      _state,
+      delta
+    ) => {
+      if (
+        !animatingRef.current
+      ) {
+        return;
+      }
+
+      const controls =
+        controlsRef.current;
+
+      /*
+       * Desactivamos temporalmente
+       * OrbitControls durante la
+       * animación automática.
+       */
+      if (controls) {
+        controls.enabled =
+          false;
+      }
+
+      const offset =
+        positionRef.current
+          .copy(
+            camera.position
+          )
+          .sub(
+            target
+          );
+
+      const spherical =
+        sphericalRef.current.setFromVector3(
+          offset
+        );
+
+      const currentAngle =
+        spherical.theta;
+
+      const targetAngle =
+        targetAngleRef.current;
+
+      /*
+       * Calculamos siempre el camino
+       * angular más corto.
+       */
+      let difference =
+        targetAngle -
+        currentAngle;
+
+      difference =
+        Math.atan2(
+          Math.sin(
+            difference
+          ),
+          Math.cos(
+            difference
+          )
+        );
+
+      /*
+       * Animación suave independiente
+       * de los FPS del dispositivo.
+       */
+      const smoothFactor =
+        1 -
+        Math.exp(
+          -5 * delta
+        );
+
+      spherical.theta =
+        currentAngle +
+        difference *
+          smoothFactor;
+
+      camera.position.copy(
+        positionRef.current
+          .setFromSpherical(
+            spherical
+          )
+          .add(
+            target
+          )
+      );
+
+      camera.lookAt(
+        target
+      );
+
+      /*
+       * Terminamos cuando estamos
+       * prácticamente en el ángulo
+       * solicitado.
+       */
+      if (
+        Math.abs(
+          difference
+        ) < 0.004
+      ) {
+        spherical.theta =
+          targetAngle;
+
+        camera.position.copy(
+          positionRef.current
+            .setFromSpherical(
+              spherical
+            )
+            .add(
+              target
+            )
+        );
+
+        camera.lookAt(
+          target
+        );
+
+        animatingRef.current =
+          false;
+
+        if (controls) {
+          controls.enabled =
+            true;
+
+          controls.update();
+        }
+      }
+    }
+  );
+
+  return null;
 }
 
 /* ========================================================= */
@@ -648,13 +818,14 @@ function LoadingShirt() {
 }
 
 /* ========================================================= */
-/* VISOR */
+/* VISOR 3D */
 /* ========================================================= */
 
 export default function Shirt3D({
   color = "#111111",
   frontDesign,
   backDesign,
+  activeSide = "front",
 }: Shirt3DProps) {
   const [
     dpr,
@@ -667,6 +838,11 @@ export default function Shirt3D({
     setLowPerformance,
   ] =
     useState(false);
+
+  const controlsRef =
+    useRef<OrbitControlsImpl>(
+      null
+    );
 
   return (
     <div className="relative h-full min-h-[560px] w-full min-w-0 overflow-hidden bg-[radial-gradient(circle_at_center,#2a2a2a_0%,#151515_42%,#0b0b0b_100%)]">
@@ -763,15 +939,11 @@ export default function Shirt3D({
         {/* ================================================= */}
 
         <ambientLight
-          intensity={
-            2.2
-          }
+          intensity={2.2}
         />
 
         <hemisphereLight
-          intensity={
-            1.8
-          }
+          intensity={1.8}
           color="#ffffff"
           groundColor="#1a1a1a"
         />
@@ -782,9 +954,7 @@ export default function Shirt3D({
             4,
             4,
           ]}
-          intensity={
-            4.8
-          }
+          intensity={4.8}
           castShadow={
             !lowPerformance
           }
@@ -796,9 +966,7 @@ export default function Shirt3D({
             2,
             -3,
           ]}
-          intensity={
-            3
-          }
+          intensity={3}
           color="#dbeafe"
         />
 
@@ -808,15 +976,9 @@ export default function Shirt3D({
             1,
             3,
           ]}
-          intensity={
-            22
-          }
-          distance={
-            9
-          }
-          decay={
-            2
-          }
+          intensity={22}
+          distance={9}
+          decay={2}
           color="#ffffff"
         />
 
@@ -826,15 +988,9 @@ export default function Shirt3D({
             1,
             2,
           ]}
-          intensity={
-            12
-          }
-          distance={
-            8
-          }
-          decay={
-            2
-          }
+          intensity={12}
+          distance={8}
+          decay={2}
           color="#ffffff"
         />
 
@@ -844,15 +1000,9 @@ export default function Shirt3D({
             3,
             -2,
           ]}
-          intensity={
-            10
-          }
-          distance={
-            8
-          }
-          decay={
-            2
-          }
+          intensity={10}
+          distance={8}
+          decay={2}
           color="#f5f5f5"
         />
 
@@ -862,9 +1012,7 @@ export default function Shirt3D({
             2,
             -4,
           ]}
-          intensity={
-            2.2
-          }
+          intensity={2.2}
           color="#ffffff"
         />
 
@@ -874,15 +1022,9 @@ export default function Shirt3D({
             -1,
             1,
           ]}
-          intensity={
-            5
-          }
-          distance={
-            7
-          }
-          decay={
-            2
-          }
+          intensity={5}
+          distance={7}
+          decay={2}
           color="#7f1d1d"
         />
 
@@ -896,9 +1038,7 @@ export default function Shirt3D({
           }
         >
           <ShirtModel
-            color={
-              color
-            }
+            color={color}
             frontDesign={
               frontDesign
             }
@@ -907,6 +1047,19 @@ export default function Shirt3D({
             }
           />
         </Suspense>
+
+        {/* ================================================= */}
+        {/* CONTROL AUTOMÁTICO FRENTE / ESPALDA */}
+        {/* ================================================= */}
+
+        <SideCameraController
+          activeSide={
+            activeSide
+          }
+          controlsRef={
+            controlsRef
+          }
+        />
 
         {/* ================================================= */}
         {/* SOMBRA */}
@@ -919,9 +1072,7 @@ export default function Shirt3D({
               -1.05,
               0,
             ]}
-            opacity={
-              0.35
-            }
+            opacity={0.35}
             scale={5}
             blur={3}
             far={2.5}
@@ -930,37 +1081,26 @@ export default function Shirt3D({
         )}
 
         {/* ================================================= */}
-        {/* CONTROLES */}
+        {/* CONTROLES MANUALES */}
         {/* ================================================= */}
 
         <OrbitControls
+          ref={
+            controlsRef
+          }
           makeDefault
-          enablePan={
-            false
-          }
+          enablePan={false}
           enableDamping
-          dampingFactor={
-            0.07
-          }
-          rotateSpeed={
-            0.65
-          }
-          zoomSpeed={
-            0.65
-          }
-          minDistance={
-            2.8
-          }
-          maxDistance={
-            6
-          }
+          dampingFactor={0.07}
+          rotateSpeed={0.65}
+          zoomSpeed={0.65}
+          minDistance={2.8}
+          maxDistance={6}
           minPolarAngle={
-            Math.PI *
-            0.27
+            Math.PI * 0.27
           }
           maxPolarAngle={
-            Math.PI *
-            0.73
+            Math.PI * 0.73
           }
           target={[
             0,
