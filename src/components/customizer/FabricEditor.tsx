@@ -27,6 +27,8 @@ type FabricEditorProps = {
   ) => void;
 };
 
+const HISTORY_LIMIT = 40;
+
 /* ========================================================= */
 /* ARCHIVO → DATA URL */
 /* ========================================================= */
@@ -103,11 +105,33 @@ export default function FabricEditor({
       null
     );
 
-  /*
-   * Cada editor necesita su
-   * propio ID porque tenemos
-   * frente y espalda montados.
-   */
+  /* ======================================================= */
+  /* HISTORIAL */
+  /* ======================================================= */
+
+  const undoStackRef =
+    useRef<string[]>([]);
+
+  const redoStackRef =
+    useRef<string[]>([]);
+
+  const restoringHistoryRef =
+    useRef(false);
+
+  const [
+    canUndo,
+    setCanUndo,
+  ] = useState(false);
+
+  const [
+    canRedo,
+    setCanRedo,
+  ] = useState(false);
+
+  /* ======================================================= */
+  /* ID ÚNICO INPUT */
+  /* ======================================================= */
+
   const reactId =
     useId();
 
@@ -117,38 +141,38 @@ export default function FabricEditor({
       ""
     )}`;
 
+  /* ======================================================= */
+  /* ESTADOS */
+  /* ======================================================= */
+
   const [
     textValue,
     setTextValue,
-  ] =
-    useState(
-      "Tu texto"
-    );
+  ] = useState(
+    "Tu texto"
+  );
 
   const [
     selectedTextColor,
     setSelectedTextColor,
-  ] =
-    useState(
-      "#ffffff"
-    );
+  ] = useState(
+    "#ffffff"
+  );
 
   const [
     selectedType,
     setSelectedType,
-  ] =
-    useState<
-      "text" | "image" | null
-    >(null);
+  ] = useState<
+    "text" | "image" | null
+  >(null);
 
   const [
     objectCount,
     setObjectCount,
-  ] =
-    useState(0);
+  ] = useState(0);
 
   /* ======================================================= */
-  /* CALLBACK */
+  /* CALLBACK ONCHANGE */
   /* ======================================================= */
 
   useEffect(() => {
@@ -157,7 +181,24 @@ export default function FabricEditor({
   }, [onChange]);
 
   /* ======================================================= */
-  /* SNAPSHOT PARA EL 3D */
+  /* ESTADO DE BOTONES */
+  /* ======================================================= */
+
+  const updateHistoryButtons =
+    useCallback(() => {
+      setCanUndo(
+        undoStackRef.current
+          .length > 1
+      );
+
+      setCanRedo(
+        redoStackRef.current
+          .length > 0
+      );
+    }, []);
+
+  /* ======================================================= */
+  /* ACTUALIZAR 3D */
   /* ======================================================= */
 
   const emitSnapshot =
@@ -193,7 +234,8 @@ export default function FabricEditor({
             currentCanvas.renderAll();
 
             const count =
-              currentCanvas.getObjects()
+              currentCanvas
+                .getObjects()
                 .length;
 
             setObjectCount(
@@ -227,7 +269,189 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* FABRIC CANVAS */
+  /* GUARDAR HISTORIAL */
+  /* ======================================================= */
+
+  const saveHistory =
+    useCallback(() => {
+      const canvas =
+        fabricCanvasRef.current;
+
+      if (
+        !canvas ||
+        restoringHistoryRef.current
+      ) {
+        return;
+      }
+
+      const json =
+        JSON.stringify(
+          canvas.toJSON()
+        );
+
+      const history =
+        undoStackRef.current;
+
+      const last =
+        history[
+          history.length - 1
+        ];
+
+      if (last === json) {
+        return;
+      }
+
+      history.push(
+        json
+      );
+
+      if (
+        history.length >
+        HISTORY_LIMIT
+      ) {
+        history.shift();
+      }
+
+      redoStackRef.current =
+        [];
+
+      updateHistoryButtons();
+    }, [
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* RESTAURAR HISTORIAL */
+  /* ======================================================= */
+
+  const restoreState =
+    useCallback(
+      async (
+        json: string
+      ) => {
+        const canvas =
+          fabricCanvasRef.current;
+
+        if (!canvas) {
+          return;
+        }
+
+        restoringHistoryRef.current =
+          true;
+
+        canvas.discardActiveObject();
+
+        try {
+          await canvas.loadFromJSON(
+            json
+          );
+
+          canvas.renderAll();
+
+          setSelectedType(
+            null
+          );
+
+          emitSnapshot();
+        } catch (error) {
+          console.error(
+            "Error restaurando historial:",
+            error
+          );
+        } finally {
+          restoringHistoryRef.current =
+            false;
+
+          updateHistoryButtons();
+        }
+      },
+      [
+        emitSnapshot,
+        updateHistoryButtons,
+      ]
+    );
+
+  /* ======================================================= */
+  /* DESHACER */
+  /* ======================================================= */
+
+  const undo =
+    useCallback(async () => {
+      if (
+        restoringHistoryRef.current
+      ) {
+        return;
+      }
+
+      if (
+        undoStackRef.current
+          .length <= 1
+      ) {
+        return;
+      }
+
+      const current =
+        undoStackRef.current.pop();
+
+      if (current) {
+        redoStackRef.current.push(
+          current
+        );
+      }
+
+      const previous =
+        undoStackRef.current[
+          undoStackRef.current
+            .length - 1
+        ];
+
+      if (previous) {
+        await restoreState(
+          previous
+        );
+      }
+
+      updateHistoryButtons();
+    }, [
+      restoreState,
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* REHACER */
+  /* ======================================================= */
+
+  const redo =
+    useCallback(async () => {
+      if (
+        restoringHistoryRef.current
+      ) {
+        return;
+      }
+
+      const next =
+        redoStackRef.current.pop();
+
+      if (!next) {
+        return;
+      }
+
+      undoStackRef.current.push(
+        next
+      );
+
+      await restoreState(
+        next
+      );
+
+      updateHistoryButtons();
+    }, [
+      restoreState,
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* CREAR CANVAS */
   /* ======================================================= */
 
   useEffect(() => {
@@ -302,6 +526,57 @@ export default function FabricEditor({
         );
       };
 
+    /* ===================================================== */
+    /* CAMBIOS */
+    /* ===================================================== */
+
+    const handleAdded =
+      () => {
+        if (
+          restoringHistoryRef.current
+        ) {
+          return;
+        }
+
+        emitSnapshot();
+        saveHistory();
+      };
+
+    const handleRemoved =
+      () => {
+        if (
+          restoringHistoryRef.current
+        ) {
+          return;
+        }
+
+        emitSnapshot();
+        saveHistory();
+      };
+
+    const handleModified =
+      () => {
+        if (
+          restoringHistoryRef.current
+        ) {
+          return;
+        }
+
+        emitSnapshot();
+        saveHistory();
+      };
+
+    const handleLiveChange =
+      () => {
+        if (
+          restoringHistoryRef.current
+        ) {
+          return;
+        }
+
+        emitSnapshot();
+      };
+
     canvas.on(
       "selection:created",
       updateSelection
@@ -317,44 +592,55 @@ export default function FabricEditor({
       updateSelection
     );
 
-    /* ===================================================== */
-    /* CAMBIOS EN TIEMPO REAL */
-    /* ===================================================== */
-
     canvas.on(
       "object:added",
-      emitSnapshot
+      handleAdded
     );
 
     canvas.on(
       "object:removed",
-      emitSnapshot
+      handleRemoved
     );
 
     canvas.on(
       "object:modified",
-      emitSnapshot
+      handleModified
     );
 
     canvas.on(
       "object:moving",
-      emitSnapshot
+      handleLiveChange
     );
 
     canvas.on(
       "object:scaling",
-      emitSnapshot
+      handleLiveChange
     );
 
     canvas.on(
       "object:rotating",
-      emitSnapshot
+      handleLiveChange
     );
 
     canvas.on(
       "text:changed",
-      emitSnapshot
+      handleLiveChange
     );
+
+    /* ===================================================== */
+    /* ESTADO INICIAL */
+    /* ===================================================== */
+
+    undoStackRef.current = [
+      JSON.stringify(
+        canvas.toJSON()
+      ),
+    ];
+
+    redoStackRef.current =
+      [];
+
+    updateHistoryButtons();
 
     emitSnapshot();
 
@@ -377,7 +663,11 @@ export default function FabricEditor({
 
       canvas.dispose();
     };
-  }, [emitSnapshot]);
+  }, [
+    emitSnapshot,
+    saveHistory,
+    updateHistoryButtons,
+  ]);
 
   /* ======================================================= */
   /* AGREGAR TEXTO */
@@ -416,12 +706,6 @@ export default function FabricEditor({
 
           textAlign:
             "center",
-
-          originX:
-            "left",
-
-          originY:
-            "top",
 
           transparentCorners:
             false,
@@ -624,6 +908,13 @@ export default function FabricEditor({
       return;
     }
 
+    /*
+     * Para selección múltiple
+     * guardamos solamente un estado.
+     */
+    restoringHistoryRef.current =
+      true;
+
     activeObjects.forEach(
       (object) => {
         canvas.remove(
@@ -631,6 +922,9 @@ export default function FabricEditor({
         );
       }
     );
+
+    restoringHistoryRef.current =
+      false;
 
     canvas.discardActiveObject();
 
@@ -641,6 +935,7 @@ export default function FabricEditor({
     );
 
     emitSnapshot();
+    saveHistory();
   }
 
   /* ======================================================= */
@@ -662,36 +957,43 @@ export default function FabricEditor({
       return;
     }
 
-    const clone =
-      await active.clone();
+    try {
+      const clone =
+        await active.clone();
 
-    clone.set({
-      left:
-        (active.left ??
-          0) + 20,
+      clone.set({
+        left:
+          (active.left ??
+            0) + 20,
 
-      top:
-        (active.top ??
-          0) + 20,
+        top:
+          (active.top ??
+            0) + 20,
 
-      evented: true,
-    });
+        evented: true,
+      });
 
-    canvas.add(
-      clone
-    );
+      canvas.add(
+        clone
+      );
 
-    canvas.setActiveObject(
-      clone
-    );
+      canvas.setActiveObject(
+        clone
+      );
 
-    canvas.renderAll();
+      canvas.renderAll();
 
-    emitSnapshot();
+      emitSnapshot();
+    } catch (error) {
+      console.error(
+        "No fue posible duplicar el elemento:",
+        error
+      );
+    }
   }
 
   /* ======================================================= */
-  /* COLOR DE TEXTO */
+  /* COLOR TEXTO */
   /* ======================================================= */
 
   function updateTextColor(
@@ -727,6 +1029,7 @@ export default function FabricEditor({
     canvas.renderAll();
 
     emitSnapshot();
+    saveHistory();
   }
 
   /* ======================================================= */
@@ -741,15 +1044,28 @@ export default function FabricEditor({
       return;
     }
 
-    canvas
-      .getObjects()
-      .forEach(
-        (object) => {
-          canvas.remove(
-            object
-          );
-        }
-      );
+    const objects =
+      [...canvas.getObjects()];
+
+    if (
+      objects.length === 0
+    ) {
+      return;
+    }
+
+    restoringHistoryRef.current =
+      true;
+
+    objects.forEach(
+      (object) => {
+        canvas.remove(
+          object
+        );
+      }
+    );
+
+    restoringHistoryRef.current =
+      false;
 
     canvas.discardActiveObject();
 
@@ -760,7 +1076,82 @@ export default function FabricEditor({
     );
 
     emitSnapshot();
+    saveHistory();
   }
+
+  /* ======================================================= */
+  /* ATAJOS CTRL+Z / CTRL+Y */
+  /* ======================================================= */
+
+  useEffect(() => {
+    const handleKeyboard =
+      (
+        event: KeyboardEvent
+      ) => {
+        const target =
+          event.target as
+            | HTMLElement
+            | null;
+
+        if (
+          target?.tagName ===
+            "INPUT" ||
+          target?.tagName ===
+            "TEXTAREA"
+        ) {
+          return;
+        }
+
+        const commandKey =
+          event.ctrlKey ||
+          event.metaKey;
+
+        if (!commandKey) {
+          return;
+        }
+
+        if (
+          event.key.toLowerCase() ===
+            "z" &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+
+          void undo();
+
+          return;
+        }
+
+        if (
+          event.key.toLowerCase() ===
+            "y" ||
+          (
+            event.key.toLowerCase() ===
+              "z" &&
+            event.shiftKey
+          )
+        ) {
+          event.preventDefault();
+
+          void redo();
+        }
+      };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyboard
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyboard
+      );
+    };
+  }, [
+    undo,
+    redo,
+  ]);
 
   /* ======================================================= */
   /* UI */
@@ -768,6 +1159,56 @@ export default function FabricEditor({
 
   return (
     <div className="grid w-full min-w-0 gap-5 overflow-hidden">
+      {/* ================================================= */}
+      {/* HISTORIAL */}
+      {/* ================================================= */}
+
+      <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-4">
+        <div className="flex min-w-0 items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+              Historial
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-zinc-600">
+              Deshaz o recupera tus últimos cambios.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                void undo()
+              }
+              disabled={
+                !canUndo
+              }
+              title="Deshacer"
+              aria-label="Deshacer"
+              className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black text-2xl font-bold text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              ↶
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                void redo()
+              }
+              disabled={
+                !canRedo
+              }
+              title="Rehacer"
+              aria-label="Rehacer"
+              className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black text-2xl font-bold text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              ↷
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ================================================= */}
       {/* HERRAMIENTAS */}
       {/* ================================================= */}
@@ -793,8 +1234,7 @@ export default function FabricEditor({
                   event
                 ) =>
                   setTextValue(
-                    event
-                      .target
+                    event.target
                       .value
                   )
                 }
@@ -825,7 +1265,7 @@ export default function FabricEditor({
           </div>
 
           {/* ============================================= */}
-          {/* LOGOS */}
+          {/* IMÁGENES */}
           {/* ============================================= */}
 
           <div className="min-w-0">
@@ -845,8 +1285,7 @@ export default function FabricEditor({
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-zinc-600">
-                  PNG, JPG o WEBP. Puedes
-                  seleccionar varios.
+                  PNG, JPG o WEBP. Puedes seleccionar varios.
                 </p>
               </div>
 
@@ -873,7 +1312,7 @@ export default function FabricEditor({
           </div>
 
           {/* ============================================= */}
-          {/* COLOR DEL TEXTO */}
+          {/* COLOR TEXTO */}
           {/* ============================================= */}
 
           {selectedType ===
@@ -886,8 +1325,7 @@ export default function FabricEditor({
                   </p>
 
                   <p className="mt-1 text-xs leading-5 text-zinc-600">
-                    Cambia el color del
-                    elemento seleccionado.
+                    Cambia el color del elemento seleccionado.
                   </p>
                 </div>
 
@@ -900,8 +1338,7 @@ export default function FabricEditor({
                     event
                   ) =>
                     updateTextColor(
-                      event
-                        .target
+                      event.target
                         .value
                     )
                   }
@@ -929,7 +1366,7 @@ export default function FabricEditor({
                 disabled={
                   !selectedType
                 }
-                className="min-w-0 rounded-xl border border-white/10 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-30 sm:px-4"
+                className="min-w-0 rounded-xl border border-white/10 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 Duplicar
               </button>
@@ -942,7 +1379,7 @@ export default function FabricEditor({
                 disabled={
                   !selectedType
                 }
-                className="min-w-0 rounded-xl border border-red-500/20 px-3 py-3 text-xs font-bold uppercase tracking-wider text-red-500 transition hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-30 sm:px-4"
+                className="min-w-0 rounded-xl border border-red-500/20 px-3 py-3 text-xs font-bold uppercase tracking-wider text-red-500 transition hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 Eliminar
               </button>
@@ -952,7 +1389,7 @@ export default function FabricEditor({
       </div>
 
       {/* ================================================= */}
-      {/* CANVAS DE EDICIÓN */}
+      {/* CANVAS */}
       {/* ================================================= */}
 
       <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(45deg,#111_25%,transparent_25%),linear-gradient(-45deg,#111_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#111_75%),linear-gradient(-45deg,transparent_75%,#111_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0px]">
@@ -996,16 +1433,12 @@ export default function FabricEditor({
       </div>
 
       {/* ================================================= */}
-      {/* INSTRUCCIONES */}
+      {/* AYUDA */}
       {/* ================================================= */}
 
       <div className="w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <p className="text-xs leading-5 text-zinc-500">
-          Selecciona un elemento para
-          moverlo, rotarlo o cambiar su
-          tamaño. Los cambios se
-          sincronizan automáticamente con
-          la vista 3D.
+          Selecciona un elemento para moverlo, rotarlo o cambiar su tamaño. Los cambios se sincronizan automáticamente con la vista 3D.
         </p>
       </div>
     </div>
