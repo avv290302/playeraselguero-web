@@ -44,6 +44,20 @@ type TextAlignment =
   | "center"
   | "right";
 
+type LayerType =
+  | "text"
+  | "image";
+
+type LayerItem = {
+  stackIndex: number;
+  type: LayerType;
+  label: string;
+};
+
+/* ========================================================= */
+/* CONFIGURACIÓN */
+/* ========================================================= */
+
 const HISTORY_LIMIT = 40;
 
 const FONT_OPTIONS = [
@@ -171,7 +185,7 @@ export default function FabricEditor({
     )}`;
 
   /* ======================================================= */
-  /* ESTADO */
+  /* ESTADO GENERAL */
   /* ======================================================= */
 
   const [
@@ -193,6 +207,24 @@ export default function FabricEditor({
     objectCount,
     setObjectCount,
   ] = useState(0);
+
+  /* ======================================================= */
+  /* CAPAS */
+  /* ======================================================= */
+
+  const [
+    layers,
+    setLayers,
+  ] = useState<
+    LayerItem[]
+  >([]);
+
+  const [
+    selectedLayerStackIndex,
+    setSelectedLayerStackIndex,
+  ] = useState<
+    number | null
+  >(null);
 
   /* ======================================================= */
   /* TRANSFORMACIÓN */
@@ -292,7 +324,7 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* SNAPSHOT */
+  /* SNAPSHOT 3D */
   /* ======================================================= */
 
   const emitSnapshot =
@@ -359,190 +391,6 @@ export default function FabricEditor({
           }
         );
     }, []);
-
-  /* ======================================================= */
-  /* GUARDAR HISTORIAL */
-  /* ======================================================= */
-
-  const saveHistory =
-    useCallback(() => {
-      const canvas =
-        fabricCanvasRef.current;
-
-      if (
-        !canvas ||
-        restoringHistoryRef.current
-      ) {
-        return;
-      }
-
-      const json =
-        JSON.stringify(
-          canvas.toJSON()
-        );
-
-      const history =
-        undoStackRef.current;
-
-      const last =
-        history[
-          history.length - 1
-        ];
-
-      if (
-        last === json
-      ) {
-        return;
-      }
-
-      history.push(
-        json
-      );
-
-      if (
-        history.length >
-        HISTORY_LIMIT
-      ) {
-        history.shift();
-      }
-
-      redoStackRef.current =
-        [];
-
-      updateHistoryButtons();
-    }, [
-      updateHistoryButtons,
-    ]);
-
-  /* ======================================================= */
-  /* RESTAURAR */
-  /* ======================================================= */
-
-  const restoreState =
-    useCallback(
-      async (
-        json: string
-      ) => {
-        const canvas =
-          fabricCanvasRef.current;
-
-        if (!canvas) {
-          return;
-        }
-
-        restoringHistoryRef.current =
-          true;
-
-        canvas.discardActiveObject();
-
-        try {
-          await canvas.loadFromJSON(
-            json
-          );
-
-          canvas.renderAll();
-
-          setSelectedType(
-            null
-          );
-
-          setSelectedX(0);
-          setSelectedY(0);
-          setSelectedAngle(0);
-          setSelectedScale(100);
-
-          emitSnapshot();
-        } catch (error) {
-          console.error(
-            "Error restaurando historial:",
-            error
-          );
-        } finally {
-          restoringHistoryRef.current =
-            false;
-
-          updateHistoryButtons();
-        }
-      },
-      [
-        emitSnapshot,
-        updateHistoryButtons,
-      ]
-    );
-
-  /* ======================================================= */
-  /* UNDO */
-  /* ======================================================= */
-
-  const undo =
-    useCallback(async () => {
-      if (
-        restoringHistoryRef.current ||
-        undoStackRef.current
-          .length <= 1
-      ) {
-        return;
-      }
-
-      const current =
-        undoStackRef.current.pop();
-
-      if (current) {
-        redoStackRef.current.push(
-          current
-        );
-      }
-
-      const previous =
-        undoStackRef.current[
-          undoStackRef.current
-            .length - 1
-        ];
-
-      if (previous) {
-        await restoreState(
-          previous
-        );
-      }
-
-      updateHistoryButtons();
-    }, [
-      restoreState,
-      updateHistoryButtons,
-    ]);
-
-  /* ======================================================= */
-  /* REDO */
-  /* ======================================================= */
-
-  const redo =
-    useCallback(async () => {
-      if (
-        restoringHistoryRef.current
-      ) {
-        return;
-      }
-
-      const next =
-        redoStackRef.current.pop();
-
-      if (!next) {
-        return;
-      }
-
-      undoStackRef.current.push(
-        next
-      );
-
-      await restoreState(
-        next
-      );
-
-      updateHistoryButtons();
-    }, [
-      restoreState,
-      updateHistoryButtons,
-    ]);
 
   /* ======================================================= */
   /* SINCRONIZAR TEXTO */
@@ -672,7 +520,294 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* CANVAS */
+  /* SINCRONIZAR LISTA DE CAPAS */
+  /* ======================================================= */
+
+  const syncLayers =
+    useCallback(() => {
+      const canvas =
+        fabricCanvasRef.current;
+
+      if (!canvas) {
+        return;
+      }
+
+      const objects =
+        canvas.getObjects();
+
+      let imageNumber =
+        0;
+
+      const layerItems =
+        objects.map(
+          (
+            object,
+            stackIndex
+          ): LayerItem => {
+            if (
+              object instanceof
+              Textbox
+            ) {
+              const rawText =
+                object.text?.trim() ||
+                "Texto";
+
+              const label =
+                rawText.length >
+                28
+                  ? `${rawText.slice(
+                      0,
+                      28
+                    )}…`
+                  : rawText;
+
+              return {
+                stackIndex,
+                type: "text",
+                label,
+              };
+            }
+
+            imageNumber +=
+              1;
+
+            return {
+              stackIndex,
+              type: "image",
+              label: `Imagen ${imageNumber}`,
+            };
+          }
+        );
+
+      /*
+       * Fabric:
+       * índice mayor = más al frente.
+       *
+       * Invertimos para que la lista
+       * se lea como Photoshop/Canva:
+       *
+       * arriba = más al frente.
+       */
+      setLayers(
+        [...layerItems].reverse()
+      );
+
+      const active =
+        canvas.getActiveObject();
+
+      if (!active) {
+        setSelectedLayerStackIndex(
+          null
+        );
+
+        return;
+      }
+
+      const activeIndex =
+        objects.indexOf(
+          active
+        );
+
+      setSelectedLayerStackIndex(
+        activeIndex >= 0
+          ? activeIndex
+          : null
+      );
+    }, []);
+
+  /* ======================================================= */
+  /* GUARDAR HISTORIAL */
+  /* ======================================================= */
+
+  const saveHistory =
+    useCallback(() => {
+      const canvas =
+        fabricCanvasRef.current;
+
+      if (
+        !canvas ||
+        restoringHistoryRef.current
+      ) {
+        return;
+      }
+
+      const json =
+        JSON.stringify(
+          canvas.toJSON()
+        );
+
+      const history =
+        undoStackRef.current;
+
+      const last =
+        history[
+          history.length - 1
+        ];
+
+      if (
+        last === json
+      ) {
+        return;
+      }
+
+      history.push(
+        json
+      );
+
+      if (
+        history.length >
+        HISTORY_LIMIT
+      ) {
+        history.shift();
+      }
+
+      redoStackRef.current =
+        [];
+
+      updateHistoryButtons();
+    }, [
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* RESTAURAR HISTORIAL */
+  /* ======================================================= */
+
+  const restoreState =
+    useCallback(
+      async (
+        json: string
+      ) => {
+        const canvas =
+          fabricCanvasRef.current;
+
+        if (!canvas) {
+          return;
+        }
+
+        restoringHistoryRef.current =
+          true;
+
+        canvas.discardActiveObject();
+
+        try {
+          await canvas.loadFromJSON(
+            json
+          );
+
+          canvas.renderAll();
+
+          setSelectedType(
+            null
+          );
+
+          setSelectedLayerStackIndex(
+            null
+          );
+
+          setSelectedX(0);
+          setSelectedY(0);
+          setSelectedAngle(0);
+          setSelectedScale(100);
+
+          syncLayers();
+
+          emitSnapshot();
+        } catch (error) {
+          console.error(
+            "Error restaurando historial:",
+            error
+          );
+        } finally {
+          restoringHistoryRef.current =
+            false;
+
+          updateHistoryButtons();
+        }
+      },
+      [
+        emitSnapshot,
+        syncLayers,
+        updateHistoryButtons,
+      ]
+    );
+
+  /* ======================================================= */
+  /* DESHACER */
+  /* ======================================================= */
+
+  const undo =
+    useCallback(async () => {
+      if (
+        restoringHistoryRef.current ||
+        undoStackRef.current
+          .length <= 1
+      ) {
+        return;
+      }
+
+      const current =
+        undoStackRef.current.pop();
+
+      if (current) {
+        redoStackRef.current.push(
+          current
+        );
+      }
+
+      const previous =
+        undoStackRef.current[
+          undoStackRef.current
+            .length - 1
+        ];
+
+      if (previous) {
+        await restoreState(
+          previous
+        );
+      }
+
+      updateHistoryButtons();
+    }, [
+      restoreState,
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* REHACER */
+  /* ======================================================= */
+
+  const redo =
+    useCallback(async () => {
+      if (
+        restoringHistoryRef.current
+      ) {
+        return;
+      }
+
+      const next =
+        redoStackRef.current.pop();
+
+      if (!next) {
+        return;
+      }
+
+      undoStackRef.current.push(
+        next
+      );
+
+      await restoreState(
+        next
+      );
+
+      updateHistoryButtons();
+    }, [
+      restoreState,
+      updateHistoryButtons,
+    ]);
+
+  /* ======================================================= */
+  /* CREAR CANVAS */
   /* ======================================================= */
 
   useEffect(() => {
@@ -695,12 +830,17 @@ export default function FabricEditor({
           preserveObjectStacking:
             true,
 
-          selection: true,
+          selection:
+            true,
         }
       );
 
     fabricCanvasRef.current =
       canvas;
+
+    /* ===================================================== */
+    /* SELECCIÓN */
+    /* ===================================================== */
 
     const updateSelection =
       () => {
@@ -708,6 +848,8 @@ export default function FabricEditor({
           canvas.getActiveObject();
 
         syncTransformControls();
+
+        syncLayers();
 
         if (!active) {
           setSelectedType(
@@ -737,6 +879,10 @@ export default function FabricEditor({
         );
       };
 
+    /* ===================================================== */
+    /* EVENTOS */
+    /* ===================================================== */
+
     const handleAdded =
       () => {
         if (
@@ -745,7 +891,10 @@ export default function FabricEditor({
           return;
         }
 
+        syncLayers();
+
         emitSnapshot();
+
         saveHistory();
       };
 
@@ -757,7 +906,10 @@ export default function FabricEditor({
           return;
         }
 
+        syncLayers();
+
         emitSnapshot();
+
         saveHistory();
       };
 
@@ -771,7 +923,10 @@ export default function FabricEditor({
 
         syncTransformControls();
 
+        syncLayers();
+
         emitSnapshot();
+
         saveHistory();
 
         const active =
@@ -850,6 +1005,10 @@ export default function FabricEditor({
       handleLiveChange
     );
 
+    /* ===================================================== */
+    /* ESTADO INICIAL */
+    /* ===================================================== */
+
     undoStackRef.current = [
       JSON.stringify(
         canvas.toJSON()
@@ -861,7 +1020,13 @@ export default function FabricEditor({
 
     updateHistoryButtons();
 
+    syncLayers();
+
     emitSnapshot();
+
+    /* ===================================================== */
+    /* CLEANUP */
+    /* ===================================================== */
 
     return () => {
       if (
@@ -884,6 +1049,7 @@ export default function FabricEditor({
     updateHistoryButtons,
     syncTextControls,
     syncTransformControls,
+    syncLayers,
   ]);
 
   /* ======================================================= */
@@ -931,13 +1097,77 @@ export default function FabricEditor({
 
     syncTransformControls();
 
+    syncLayers();
+
     emitSnapshot();
 
     saveHistory();
   }
 
   /* ======================================================= */
-  /* TEXTO */
+  /* SELECCIONAR CAPA DESDE LISTA */
+  /* ======================================================= */
+
+  function selectLayer(
+    stackIndex: number
+  ) {
+    const canvas =
+      fabricCanvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const objects =
+      canvas.getObjects();
+
+    const object =
+      objects[
+        stackIndex
+      ];
+
+    if (!object) {
+      return;
+    }
+
+    canvas.discardActiveObject();
+
+    canvas.setActiveObject(
+      object
+    );
+
+    object.setCoords();
+
+    canvas.requestRenderAll();
+
+    setSelectedLayerStackIndex(
+      stackIndex
+    );
+
+    syncTransformControls();
+
+    if (
+      object instanceof
+      Textbox
+    ) {
+      setSelectedType(
+        "text"
+      );
+
+      syncTextControls(
+        object
+      );
+    } else {
+      setSelectedType(
+        "image"
+      );
+    }
+
+    syncLayers();
+  }
+
+  /* ======================================================= */
+  /* AGREGAR TEXTO */
   /* ======================================================= */
 
   function addText() {
@@ -958,6 +1188,7 @@ export default function FabricEditor({
         {
           left: 150,
           top: 180,
+
           width: 200,
 
           fill:
@@ -1026,11 +1257,13 @@ export default function FabricEditor({
 
     syncTransformControls();
 
+    syncLayers();
+
     emitSnapshot();
   }
 
   /* ======================================================= */
-  /* IMÁGENES */
+  /* AGREGAR IMÁGENES */
   /* ======================================================= */
 
   async function addImages(
@@ -1084,10 +1317,12 @@ export default function FabricEditor({
           );
 
         const width =
-          image.width || 1;
+          image.width ||
+          1;
 
         const height =
-          image.height || 1;
+          image.height ||
+          1;
 
         const scale =
           Math.min(
@@ -1149,6 +1384,8 @@ export default function FabricEditor({
 
     syncTransformControls();
 
+    syncLayers();
+
     emitSnapshot();
 
     if (
@@ -1160,7 +1397,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* DUPLICAR / ELIMINAR */
+  /* DUPLICAR */
   /* ======================================================= */
 
   async function duplicateSelected() {
@@ -1177,52 +1414,70 @@ export default function FabricEditor({
       return;
     }
 
-    const clone =
-      await active.clone();
+    try {
+      const clone =
+        await active.clone();
 
-    clone.set({
-      left:
-        (active.left ?? 0) +
-        20,
+      clone.set({
+        left:
+          (
+            active.left ??
+            0
+          ) + 20,
 
-      top:
-        (active.top ?? 0) +
-        20,
+        top:
+          (
+            active.top ??
+            0
+          ) + 20,
 
-      evented: true,
-    });
+        evented:
+          true,
+      });
 
-    canvas.add(
-      clone
-    );
-
-    canvas.setActiveObject(
-      clone
-    );
-
-    canvas.renderAll();
-
-    if (
-      clone instanceof
-      Textbox
-    ) {
-      setSelectedType(
-        "text"
-      );
-
-      syncTextControls(
+      canvas.add(
         clone
       );
-    } else {
-      setSelectedType(
-        "image"
+
+      canvas.setActiveObject(
+        clone
+      );
+
+      canvas.renderAll();
+
+      if (
+        clone instanceof
+        Textbox
+      ) {
+        setSelectedType(
+          "text"
+        );
+
+        syncTextControls(
+          clone
+        );
+      } else {
+        setSelectedType(
+          "image"
+        );
+      }
+
+      syncTransformControls();
+
+      syncLayers();
+
+      emitSnapshot();
+    } catch (error) {
+      console.error(
+        "No fue posible duplicar el elemento:",
+        error
       );
     }
-
-    syncTransformControls();
-
-    emitSnapshot();
   }
+
+  /* ======================================================= */
+  /* ELIMINAR */
+  /* ======================================================= */
 
   function deleteSelected() {
     const canvas =
@@ -1236,7 +1491,8 @@ export default function FabricEditor({
       canvas.getActiveObjects();
 
     if (
-      objects.length === 0
+      objects.length ===
+      0
     ) {
       return;
     }
@@ -1245,10 +1501,11 @@ export default function FabricEditor({
       true;
 
     objects.forEach(
-      (object) =>
+      (object) => {
         canvas.remove(
           object
-        )
+        );
+      }
     );
 
     restoringHistoryRef.current =
@@ -1262,13 +1519,19 @@ export default function FabricEditor({
       null
     );
 
+    setSelectedLayerStackIndex(
+      null
+    );
+
+    syncLayers();
+
     emitSnapshot();
 
     saveHistory();
   }
 
   /* ======================================================= */
-  /* TEXTO: ESTILO */
+  /* TEXTO: COLOR */
   /* ======================================================= */
 
   function updateTextColor(
@@ -1292,6 +1555,10 @@ export default function FabricEditor({
     finishChange();
   }
 
+  /* ======================================================= */
+  /* TEXTO: FUENTE */
+  /* ======================================================= */
+
   function updateFontFamily(
     value: string
   ) {
@@ -1313,6 +1580,10 @@ export default function FabricEditor({
 
     finishChange();
   }
+
+  /* ======================================================= */
+  /* TEXTO: TAMAÑO */
+  /* ======================================================= */
 
   function updateFontSize(
     value: number
@@ -1345,6 +1616,10 @@ export default function FabricEditor({
     finishChange();
   }
 
+  /* ======================================================= */
+  /* TEXTO: NEGRITA */
+  /* ======================================================= */
+
   function toggleBold() {
     const next =
       !selectedBold;
@@ -1369,6 +1644,10 @@ export default function FabricEditor({
 
     finishChange();
   }
+
+  /* ======================================================= */
+  /* TEXTO: CURSIVA */
+  /* ======================================================= */
 
   function toggleItalic() {
     const next =
@@ -1395,6 +1674,10 @@ export default function FabricEditor({
     finishChange();
   }
 
+  /* ======================================================= */
+  /* TEXTO: ALINEACIÓN */
+  /* ======================================================= */
+
   function updateAlignment(
     alignment: TextAlignment
   ) {
@@ -1418,7 +1701,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* TRANSFORMACIONES */
+  /* POSICIÓN X */
   /* ======================================================= */
 
   function updatePositionX(
@@ -1433,7 +1716,9 @@ export default function FabricEditor({
     if (
       !canvas ||
       !active ||
-      Number.isNaN(value)
+      Number.isNaN(
+        value
+      )
     ) {
       return;
     }
@@ -1443,7 +1728,8 @@ export default function FabricEditor({
     );
 
     active.set({
-      left: value,
+      left:
+        value,
     });
 
     active.setCoords();
@@ -1452,6 +1738,10 @@ export default function FabricEditor({
 
     emitSnapshot();
   }
+
+  /* ======================================================= */
+  /* POSICIÓN Y */
+  /* ======================================================= */
 
   function updatePositionY(
     value: number
@@ -1465,7 +1755,9 @@ export default function FabricEditor({
     if (
       !canvas ||
       !active ||
-      Number.isNaN(value)
+      Number.isNaN(
+        value
+      )
     ) {
       return;
     }
@@ -1475,7 +1767,8 @@ export default function FabricEditor({
     );
 
     active.set({
-      top: value,
+      top:
+        value,
     });
 
     active.setCoords();
@@ -1484,6 +1777,10 @@ export default function FabricEditor({
 
     emitSnapshot();
   }
+
+  /* ======================================================= */
+  /* ROTACIÓN */
+  /* ======================================================= */
 
   function updateObjectAngle(
     value: number
@@ -1515,6 +1812,10 @@ export default function FabricEditor({
 
     emitSnapshot();
   }
+
+  /* ======================================================= */
+  /* ESCALA */
+  /* ======================================================= */
 
   function updateObjectScale(
     value: number
@@ -1549,8 +1850,11 @@ export default function FabricEditor({
     );
 
     active.set({
-      scaleX: scale,
-      scaleY: scale,
+      scaleX:
+        scale,
+
+      scaleY:
+        scale,
     });
 
     active.setCoords();
@@ -1560,9 +1864,17 @@ export default function FabricEditor({
     emitSnapshot();
   }
 
+  /* ======================================================= */
+  /* GUARDAR TRANSFORMACIÓN */
+  /* ======================================================= */
+
   function saveTransformChange() {
     finishChange();
   }
+
+  /* ======================================================= */
+  /* CENTRAR HORIZONTAL */
+  /* ======================================================= */
 
   function centerHorizontal() {
     const canvas =
@@ -1583,20 +1895,29 @@ export default function FabricEditor({
 
     const currentCenter =
       bounds.left +
-      bounds.width / 2;
+      bounds.width /
+        2;
 
     const desired =
-      canvas.getWidth() / 2;
+      canvas.getWidth() /
+      2;
 
     active.set({
       left:
-        (active.left ?? 0) +
+        (
+          active.left ??
+          0
+        ) +
         desired -
         currentCenter,
     });
 
     finishChange();
   }
+
+  /* ======================================================= */
+  /* CENTRAR VERTICAL */
+  /* ======================================================= */
 
   function centerVertical() {
     const canvas =
@@ -1617,14 +1938,19 @@ export default function FabricEditor({
 
     const currentCenter =
       bounds.top +
-      bounds.height / 2;
+      bounds.height /
+        2;
 
     const desired =
-      canvas.getHeight() / 2;
+      canvas.getHeight() /
+      2;
 
     active.set({
       top:
-        (active.top ?? 0) +
+        (
+          active.top ??
+          0
+        ) +
         desired -
         currentCenter,
     });
@@ -1633,7 +1959,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* CAPAS */
+  /* CAPAS: SUBIR */
   /* ======================================================= */
 
   function moveLayerUp() {
@@ -1654,8 +1980,16 @@ export default function FabricEditor({
       active
     );
 
+    canvas.setActiveObject(
+      active
+    );
+
     finishChange();
   }
+
+  /* ======================================================= */
+  /* CAPAS: BAJAR */
+  /* ======================================================= */
 
   function moveLayerDown() {
     const canvas =
@@ -1675,8 +2009,16 @@ export default function FabricEditor({
       active
     );
 
+    canvas.setActiveObject(
+      active
+    );
+
     finishChange();
   }
+
+  /* ======================================================= */
+  /* CAPAS: AL FRENTE */
+  /* ======================================================= */
 
   function moveLayerToFront() {
     const canvas =
@@ -1696,8 +2038,16 @@ export default function FabricEditor({
       active
     );
 
+    canvas.setActiveObject(
+      active
+    );
+
     finishChange();
   }
+
+  /* ======================================================= */
+  /* CAPAS: AL FONDO */
+  /* ======================================================= */
 
   function moveLayerToBack() {
     const canvas =
@@ -1714,6 +2064,10 @@ export default function FabricEditor({
     }
 
     canvas.sendObjectToBack(
+      active
+    );
+
+    canvas.setActiveObject(
       active
     );
 
@@ -1736,7 +2090,8 @@ export default function FabricEditor({
       [...canvas.getObjects()];
 
     if (
-      objects.length === 0
+      objects.length ===
+      0
     ) {
       return;
     }
@@ -1745,10 +2100,11 @@ export default function FabricEditor({
       true;
 
     objects.forEach(
-      (object) =>
+      (object) => {
         canvas.remove(
           object
-        )
+        );
+      }
     );
 
     restoringHistoryRef.current =
@@ -1761,6 +2117,12 @@ export default function FabricEditor({
     setSelectedType(
       null
     );
+
+    setSelectedLayerStackIndex(
+      null
+    );
+
+    syncLayers();
 
     emitSnapshot();
 
@@ -1831,11 +2193,12 @@ export default function FabricEditor({
       handleKeyboard
     );
 
-    return () =>
+    return () => {
       window.removeEventListener(
         "keydown",
         handleKeyboard
       );
+    };
   }, [
     undo,
     redo,
@@ -1848,7 +2211,7 @@ export default function FabricEditor({
   return (
     <div className="w-full min-w-0 space-y-4">
       {/* ================================================= */}
-      {/* HISTORIAL COMPACTO */}
+      {/* HISTORIAL */}
       {/* ================================================= */}
 
       <div className="flex min-w-0 items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-3">
@@ -1871,7 +2234,8 @@ export default function FabricEditor({
             disabled={
               !canUndo
             }
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:opacity-20"
+            title="Deshacer"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-20"
           >
             ↶
           </button>
@@ -1884,7 +2248,8 @@ export default function FabricEditor({
             disabled={
               !canRedo
             }
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:opacity-20"
+            title="Rehacer"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-20"
           >
             ↷
           </button>
@@ -1892,7 +2257,7 @@ export default function FabricEditor({
       </div>
 
       {/* ================================================= */}
-      {/* PANEL DISEÑO */}
+      {/* DISEÑO */}
       {/* ================================================= */}
 
       {panel ===
@@ -1950,8 +2315,8 @@ export default function FabricEditor({
                 Imagen seleccionada
               </p>
 
-              <p className="mt-1 text-xs text-zinc-600">
-                Puedes moverla directamente dentro del editor o usar la pestaña Capas para realizar ajustes precisos.
+              <p className="mt-1 text-xs leading-5 text-zinc-600">
+                Muévela directamente en el área de diseño o entra a Capas para realizar ajustes precisos.
               </p>
             </div>
           )}
@@ -1959,7 +2324,7 @@ export default function FabricEditor({
       )}
 
       {/* ================================================= */}
-      {/* PANEL TEXTO */}
+      {/* TEXTO */}
       {/* ================================================= */}
 
       {panel ===
@@ -1976,11 +2341,11 @@ export default function FabricEditor({
               }
               onChange={(
                 event
-              ) =>
+              ) => {
                 setTextValue(
                   event.target.value
-                )
-              }
+                );
+              }}
               onKeyDown={(
                 event
               ) => {
@@ -2009,7 +2374,7 @@ export default function FabricEditor({
             "text" && (
             <div className="mt-5 rounded-xl border border-white/10 bg-black p-4">
               <p className="text-xs leading-5 text-zinc-500">
-                Agrega un texto o selecciónalo dentro del editor para mostrar sus opciones.
+                Agrega un texto o selecciónalo dentro del área de diseño para mostrar sus opciones.
               </p>
             </div>
           )}
@@ -2030,11 +2395,11 @@ export default function FabricEditor({
                   }
                   onChange={(
                     event
-                  ) =>
+                  ) => {
                     updateFontFamily(
                       event.target.value
-                    )
-                  }
+                    );
+                  }}
                   className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-red-500"
                 >
                   {FONT_OPTIONS.map(
@@ -2079,13 +2444,13 @@ export default function FabricEditor({
                   }
                   onChange={(
                     event
-                  ) =>
+                  ) => {
                     updateFontSize(
                       Number(
                         event.target.value
                       )
-                    )
-                  }
+                    );
+                  }}
                   className="mt-3 w-full accent-red-600"
                 />
               </div>
@@ -2140,11 +2505,11 @@ export default function FabricEditor({
                         alignment
                       }
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
                         updateAlignment(
                           alignment
-                        )
-                      }
+                        );
+                      }}
                       className={`rounded-xl border px-2 py-3 text-xs font-bold ${
                         selectedAlignment ===
                         alignment
@@ -2186,11 +2551,11 @@ export default function FabricEditor({
                   }
                   onChange={(
                     event
-                  ) =>
+                  ) => {
                     updateTextColor(
                       event.target.value
-                    )
-                  }
+                    );
+                  }}
                   className="h-11 w-14 cursor-pointer rounded-lg bg-black"
                 />
               </div>
@@ -2200,30 +2565,173 @@ export default function FabricEditor({
       )}
 
       {/* ================================================= */}
-      {/* PANEL CAPAS */}
+      {/* CAPAS */}
       {/* ================================================= */}
 
       {panel ===
         "layers" && (
         <div className="space-y-4">
-          {!selectedType && (
-            <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
-                Selecciona un elemento
-              </p>
+          {/* ============================================= */}
+          {/* LISTA REAL DE CAPAS */}
+          {/* ============================================= */}
 
-              <p className="mt-2 text-xs leading-5 text-zinc-600">
-                Toca un texto o imagen dentro del editor para mostrar sus controles.
-              </p>
+          <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                  Capas
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  Selecciona cualquier elemento del diseño.
+                </p>
+              </div>
+
+              <span className="shrink-0 rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] font-bold text-zinc-500">
+                {layers.length}
+              </span>
             </div>
-          )}
+
+            {layers.length ===
+            0 ? (
+              <div className="mt-5 rounded-xl border border-dashed border-white/10 bg-black/50 p-5 text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-lg text-zinc-600">
+                  ◫
+                </div>
+
+                <p className="mt-3 text-xs font-bold text-zinc-400">
+                  Todavía no hay capas
+                </p>
+
+                <p className="mt-1 text-[10px] leading-5 text-zinc-600">
+                  Agrega texto, logos o imágenes para comenzar.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-2">
+                {layers.map(
+                  (
+                    layer,
+                    visualIndex
+                  ) => {
+                    const selected =
+                      selectedLayerStackIndex ===
+                      layer.stackIndex;
+
+                    return (
+                      <button
+                        key={`${layer.stackIndex}-${layer.type}-${layer.label}`}
+                        type="button"
+                        onClick={() => {
+                          selectLayer(
+                            layer.stackIndex
+                          );
+                        }}
+                        className={`group flex w-full min-w-0 items-center gap-3 rounded-xl border p-3 text-left transition ${
+                          selected
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-white/10 bg-black hover:border-white/20 hover:bg-white/[0.02]"
+                        }`}
+                      >
+                        {/* ICONO */}
+
+                        <div
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-black ${
+                            selected
+                              ? "border-red-500/30 bg-red-500/10 text-red-500"
+                              : "border-white/10 bg-[#111] text-zinc-500"
+                          }`}
+                        >
+                          {layer.type ===
+                          "text"
+                            ? "T"
+                            : "▧"}
+                        </div>
+
+                        {/* INFORMACIÓN */}
+
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`truncate text-xs font-bold ${
+                              selected
+                                ? "text-white"
+                                : "text-zinc-300"
+                            }`}
+                          >
+                            {
+                              layer.label
+                            }
+                          </p>
+
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-600">
+                              {layer.type ===
+                              "text"
+                                ? "Texto"
+                                : "Imagen"}
+                            </span>
+
+                            <span className="h-1 w-1 rounded-full bg-zinc-800" />
+
+                            <span className="text-[9px] text-zinc-700">
+                              {visualIndex ===
+                              0
+                                ? "Al frente"
+                                : `Capa ${
+                                    layers.length -
+                                    visualIndex
+                                  }`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* INDICADOR */}
+
+                        <div className="shrink-0">
+                          {selected ? (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="text-lg text-zinc-700 transition group-hover:text-zinc-400">
+                              ›
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            )}
+
+            <p className="mt-4 text-[10px] leading-5 text-zinc-700">
+              La primera capa de la lista aparece por encima de las demás.
+            </p>
+          </div>
+
+          {/* ============================================= */}
+          {/* SIN SELECCIÓN */}
+          {/* ============================================= */}
+
+          {!selectedType &&
+            layers.length >
+              0 && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <p className="text-xs leading-5 text-zinc-500">
+                  Selecciona una capa de la lista para editar posición, tamaño y orden.
+                </p>
+              </div>
+            )}
+
+          {/* ============================================= */}
+          {/* AJUSTE PRECISO */}
+          {/* ============================================= */}
 
           {selectedType && (
             <>
-              {/* AJUSTE PRECISO */}
-
               <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
                       Ajuste preciso
@@ -2236,69 +2744,79 @@ export default function FabricEditor({
                         : "Imagen seleccionada"}
                     </p>
                   </div>
+
+                  <span className="rounded-lg border border-white/10 bg-black px-2 py-1 text-[9px] font-bold uppercase text-zinc-500">
+                    Seleccionado
+                  </span>
                 </div>
 
-                {/* X Y */}
+                {/* POSICIÓN */}
 
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <label>
-                    <span className="text-[9px] font-bold uppercase text-zinc-600">
-                      Posición X
-                    </span>
+                <div className="mt-5">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">
+                    Posición
+                  </p>
 
-                    <input
-                      type="number"
-                      value={
-                        selectedX
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updatePositionX(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                      onBlur={
-                        saveTransformChange
-                      }
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
-                    />
-                  </label>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <label>
+                      <span className="text-[9px] font-bold uppercase text-zinc-700">
+                        X
+                      </span>
 
-                  <label>
-                    <span className="text-[9px] font-bold uppercase text-zinc-600">
-                      Posición Y
-                    </span>
+                      <input
+                        type="number"
+                        value={
+                          selectedX
+                        }
+                        onChange={(
+                          event
+                        ) => {
+                          updatePositionX(
+                            Number(
+                              event.target.value
+                            )
+                          );
+                        }}
+                        onBlur={
+                          saveTransformChange
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
+                      />
+                    </label>
 
-                    <input
-                      type="number"
-                      value={
-                        selectedY
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updatePositionY(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                      onBlur={
-                        saveTransformChange
-                      }
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
-                    />
-                  </label>
+                    <label>
+                      <span className="text-[9px] font-bold uppercase text-zinc-700">
+                        Y
+                      </span>
+
+                      <input
+                        type="number"
+                        value={
+                          selectedY
+                        }
+                        onChange={(
+                          event
+                        ) => {
+                          updatePositionY(
+                            Number(
+                              event.target.value
+                            )
+                          );
+                        }}
+                        onBlur={
+                          saveTransformChange
+                        }
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {/* ROTACIÓN */}
 
                 <div className="mt-5">
                   <div className="flex justify-between">
-                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">
                       Rotación
                     </span>
 
@@ -2314,30 +2832,34 @@ export default function FabricEditor({
                     type="range"
                     min="-180"
                     max="180"
+                    step="1"
                     value={
                       selectedAngle
                     }
                     onChange={(
                       event
-                    ) =>
+                    ) => {
                       updateObjectAngle(
                         Number(
                           event.target.value
                         )
-                      )
-                    }
+                      );
+                    }}
                     onPointerUp={
+                      saveTransformChange
+                    }
+                    onBlur={
                       saveTransformChange
                     }
                     className="mt-3 w-full accent-red-600"
                   />
                 </div>
 
-                {/* ESCALA */}
+                {/* TAMAÑO */}
 
                 <div className="mt-5">
                   <div className="flex justify-between">
-                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">
                       Tamaño
                     </span>
 
@@ -2353,19 +2875,23 @@ export default function FabricEditor({
                     type="range"
                     min="10"
                     max="300"
+                    step="1"
                     value={
                       selectedScale
                     }
                     onChange={(
                       event
-                    ) =>
+                    ) => {
                       updateObjectScale(
                         Number(
                           event.target.value
                         )
-                      )
-                    }
+                      );
+                    }}
                     onPointerUp={
+                      saveTransformChange
+                    }
+                    onBlur={
                       saveTransformChange
                     }
                     className="mt-3 w-full accent-red-600"
@@ -2380,9 +2906,9 @@ export default function FabricEditor({
                     onClick={
                       centerHorizontal
                     }
-                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
-                    ↔ Centrar
+                    ↔ Horizontal
                   </button>
 
                   <button
@@ -2390,18 +2916,24 @@ export default function FabricEditor({
                     onClick={
                       centerVertical
                     }
-                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
-                    ↕ Centrar
+                    ↕ Vertical
                   </button>
                 </div>
               </div>
 
+              {/* ========================================= */}
               {/* ORDEN */}
+              {/* ========================================= */}
 
               <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
                   Orden de capa
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  Decide qué elemento aparece encima de los demás.
                 </p>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -2410,7 +2942,7 @@ export default function FabricEditor({
                     onClick={
                       moveLayerUp
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
                     ↑ Subir
                   </button>
@@ -2420,7 +2952,7 @@ export default function FabricEditor({
                     onClick={
                       moveLayerDown
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
                     ↓ Bajar
                   </button>
@@ -2430,7 +2962,7 @@ export default function FabricEditor({
                     onClick={
                       moveLayerToFront
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
                     ⇈ Al frente
                   </button>
@@ -2440,14 +2972,16 @@ export default function FabricEditor({
                     onClick={
                       moveLayerToBack
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white transition hover:border-red-500 hover:text-red-500"
                   >
                     ⇊ Al fondo
                   </button>
                 </div>
               </div>
 
+              {/* ========================================= */}
               {/* ACCIONES */}
+              {/* ========================================= */}
 
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -2455,7 +2989,7 @@ export default function FabricEditor({
                   onClick={
                     duplicateSelected
                   }
-                  className="rounded-xl border border-white/10 bg-[#111] px-3 py-4 text-xs font-bold uppercase text-white hover:border-white/30"
+                  className="rounded-xl border border-white/10 bg-[#111] px-3 py-4 text-xs font-bold uppercase text-white transition hover:border-white/30"
                 >
                   Duplicar
                 </button>
@@ -2465,7 +2999,7 @@ export default function FabricEditor({
                   onClick={
                     deleteSelected
                   }
-                  className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-4 text-xs font-bold uppercase text-red-500 hover:border-red-500"
+                  className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-4 text-xs font-bold uppercase text-red-500 transition hover:border-red-500"
                 >
                   Eliminar
                 </button>
@@ -2476,7 +3010,7 @@ export default function FabricEditor({
       )}
 
       {/* ================================================= */}
-      {/* CANVAS - SIEMPRE VISIBLE */}
+      {/* ÁREA DE DISEÑO */}
       {/* ================================================= */}
 
       <div>
@@ -2501,9 +3035,10 @@ export default function FabricEditor({
               clearCanvas
             }
             disabled={
-              objectCount === 0
+              objectCount ===
+              0
             }
-            className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 transition hover:text-red-500 disabled:opacity-20"
+            className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 transition hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-20"
           >
             Limpiar
           </button>
