@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import Container from "@/components/common/Container";
 
 import FabricEditor, {
   type EditorSnapshot,
+  type FabricEditorPanel,
 } from "@/components/customizer/FabricEditor";
 
 import Shirt3D from "@/components/customizer/Shirt3D";
@@ -71,6 +75,14 @@ export default function Customizer() {
   );
 
   const [
+    activePanel,
+    setActivePanel,
+  ] =
+    useState<FabricEditorPanel>(
+      "design"
+    );
+
+  const [
     frontDesign,
     setFrontDesign,
   ] =
@@ -90,6 +102,11 @@ export default function Customizer() {
     frontDesign.objectCount +
     backDesign.objectCount;
 
+  const currentObjects =
+    activeSide === "front"
+      ? frontDesign.objectCount
+      : backDesign.objectCount;
+
   /* ======================================================= */
   /* WHATSAPP */
   /* ======================================================= */
@@ -101,7 +118,7 @@ export default function Customizer() {
           [
             "Hola, estuve usando el personalizador de Playeras El Güero y quiero cotizar una playera personalizada.",
             "",
-            `Color de playera: ${selectedColor.name}`,
+            `Color: ${selectedColor.name}`,
             `Elementos al frente: ${frontDesign.objectCount}`,
             `Elementos en espalda: ${backDesign.objectCount}`,
             `Total de elementos: ${totalObjects}`,
@@ -121,13 +138,13 @@ export default function Customizer() {
   return (
     <section
       id="personaliza"
-      className="relative w-full overflow-hidden bg-[#080808] py-24"
+      className="relative w-full overflow-hidden bg-[#080808] py-20 sm:py-24"
     >
       {/* ================================================= */}
-      {/* FONDO */}
+      {/* DECORACIÓN */}
       {/* ================================================= */}
 
-      <div className="pointer-events-none absolute left-0 top-1/2 h-[500px] w-[500px] -translate-y-1/2 rounded-full bg-red-600/5 blur-[170px]" />
+      <div className="pointer-events-none absolute left-0 top-1/3 h-[500px] w-[500px] rounded-full bg-red-600/5 blur-[170px]" />
 
       <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-red-600/5 blur-[170px]" />
 
@@ -136,422 +153,421 @@ export default function Customizer() {
         {/* ENCABEZADO */}
         {/* ================================================= */}
 
-        <div className="mb-12 max-w-3xl">
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
-            Personalizador Pro
-          </p>
+        <div className="mb-10 max-w-3xl">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="h-px w-8 bg-red-500" />
 
-          <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-5xl uppercase leading-none tracking-wide text-white sm:text-6xl">
-            Diseña
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
+              Personalizador Pro
+            </p>
+          </div>
+
+          <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase leading-none tracking-wide text-white sm:text-6xl">
+            Crea tu propia
             <span className="ml-3 text-red-500">
-              tu playera
+              playera
             </span>
           </h2>
 
           <p className="mt-5 max-w-2xl leading-7 text-zinc-400">
-            Diseña tu playera en tiempo real.
-            Agrega logos, textos y elementos,
-            cambia colores y visualiza tu
-            diseño directamente sobre una
-            playera 3D interactiva.
+            Agrega logos y textos, acomoda cada
+            elemento y visualiza el resultado
+            directamente sobre una playera 3D.
           </p>
         </div>
 
         {/* ================================================= */}
-        {/* FRENTE / ESPALDA */}
+        {/* CONTENEDOR PRINCIPAL */}
         {/* ================================================= */}
 
-        <div className="mb-6 flex w-full min-w-0 flex-col gap-4 rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 rounded-xl border border-white/10 bg-black p-1">
-            <button
-              type="button"
-              onClick={() =>
-                setActiveSide(
-                  "front"
-                )
-              }
-              className={`flex-1 rounded-lg px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition sm:flex-none sm:px-6 ${
-                activeSide ===
-                "front"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-500 hover:text-white"
-              }`}
-            >
-              Frente
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setActiveSide(
-                  "back"
-                )
-              }
-              className={`flex-1 rounded-lg px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition sm:flex-none sm:px-6 ${
-                activeSide ===
-                "back"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-500 hover:text-white"
-              }`}
-            >
-              Espalda
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between gap-6 sm:justify-end">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
-                Editando
-              </p>
-
-              <p className="mt-1 text-sm font-bold text-white">
-                {activeSide ===
-                "front"
-                  ? "Frente"
-                  : "Espalda"}
-              </p>
-            </div>
-
-            <div className="h-8 w-px bg-white/10" />
-
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
-                Elementos
-              </p>
-
-              <p className="mt-1 text-sm font-bold text-white">
-                {totalObjects}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ================================================= */}
-        {/* ÁREA PRINCIPAL */}
-        {/* ================================================= */}
-
-        <div className="grid w-full min-w-0 grid-cols-1 gap-6 overflow-hidden xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+        <div className="w-full min-w-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b]">
           {/* ================================================= */}
-          {/* CARD PLAYERA 3D */}
+          {/* BARRA SUPERIOR */}
           {/* ================================================= */}
 
-          <div className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-3xl border border-white/10 bg-[#101010]">
-            <div className="flex min-w-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-white sm:text-base">
-                  Vista 3D de tu playera
-                </p>
+          <div className="flex w-full min-w-0 flex-col gap-4 border-b border-white/10 bg-[#0e0e0e] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            {/* FRENTE / ESPALDA */}
 
-                <p className="mt-1 text-xs leading-5 text-zinc-500 sm:text-sm">
-                  Gírala, acércala y observa tu
-                  playera desde cualquier ángulo.
-                </p>
-              </div>
-
-              <span className="shrink-0 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] text-red-500 sm:text-[10px]">
-                3D interactivo
-              </span>
-            </div>
-
-            <div className="h-[580px] w-full min-w-0 sm:h-[650px] lg:h-[700px]">
-              <Shirt3D
-  color={selectedColor.hex}
-  frontDesign={frontDesign.preview}
-  backDesign={backDesign.preview}
-  activeSide={activeSide}
-/>
-            </div>
-
-            <div className="border-t border-white/10 px-5 py-4 sm:px-6">
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="min-w-0 text-xs leading-5 text-zinc-600">
-                  Arrastra la playera para rotarla.
-                  Usa la rueda del mouse o pellizca
-                  con dos dedos para hacer zoom.
-                </p>
-
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-700">
-                  Vista 360°
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* ================================================= */}
-          {/* PANEL DERECHO */}
-          {/* ================================================= */}
-
-          <div className="w-full min-w-0 space-y-5 overflow-hidden">
-            {/* ============================================= */}
-            {/* COLOR */}
-            {/* ============================================= */}
-
-            <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-5">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                    Playera
-                  </p>
-
-                  <h3 className="mt-2 text-xl font-bold text-white">
-                    Selecciona el color
-                  </h3>
-                </div>
-
-                <span className="shrink-0 text-sm font-semibold text-zinc-400">
-                  {
-                    selectedColor.name
-                  }
-                </span>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                {shirtColors.map(
-                  (color) => {
-                    const isSelected =
-                      selectedColor.name ===
-                      color.name;
-
-                    return (
-                      <button
-                        key={
-                          color.name
-                        }
-                        type="button"
-                        onClick={() =>
-                          setSelectedColor(
-                            color
-                          )
-                        }
-                        aria-label={`Seleccionar color ${color.name}`}
-                        title={
-                          color.name
-                        }
-                        className={`relative h-11 w-11 shrink-0 rounded-full border-2 transition ${
-                          isSelected
-                            ? "scale-110 border-red-500"
-                            : "border-white/20 hover:scale-105 hover:border-white/60"
-                        }`}
-                        style={{
-                          backgroundColor:
-                            color.hex,
-                        }}
-                      >
-                        {isSelected && (
-                          <span className="absolute -bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-red-500" />
-                        )}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-            </div>
-
-            {/* ============================================= */}
-            {/* ZONA */}
-            {/* ============================================= */}
-
-            <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                Zona de diseño
-              </p>
-
-              <div className="mt-4 grid min-w-0 grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveSide(
-                      "front"
-                    )
-                  }
-                  className={`min-w-0 rounded-xl border px-3 py-4 text-sm font-bold transition sm:px-4 ${
-                    activeSide ===
+            <div className="flex min-w-0 rounded-xl border border-white/10 bg-black p-1">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveSide(
                     "front"
-                      ? "border-red-500 bg-red-500/10 text-white"
-                      : "border-white/10 bg-black text-zinc-500 hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  Frente
-                </button>
+                  )
+                }
+                className={`min-w-0 flex-1 rounded-lg px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition sm:flex-none sm:px-7 ${
+                  activeSide ===
+                  "front"
+                    ? "bg-red-600 text-white shadow-lg shadow-red-950/30"
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Frente
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveSide(
-                      "back"
-                    )
-                  }
-                  className={`min-w-0 rounded-xl border px-3 py-4 text-sm font-bold transition sm:px-4 ${
-                    activeSide ===
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveSide(
                     "back"
-                      ? "border-red-500 bg-red-500/10 text-white"
-                      : "border-white/10 bg-black text-zinc-500 hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  Espalda
-                </button>
-              </div>
+                  )
+                }
+                className={`min-w-0 flex-1 rounded-lg px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition sm:flex-none sm:px-7 ${
+                  activeSide ===
+                  "back"
+                    ? "bg-red-600 text-white shadow-lg shadow-red-950/30"
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Espalda
+              </button>
+            </div>
 
-              <p className="mt-4 text-xs leading-5 text-zinc-600">
-                Estás editando el{" "}
-                <span className="font-bold text-zinc-400">
+            {/* ESTADO */}
+
+            <div className="flex items-center justify-between gap-5 sm:justify-end">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                  Editando
+                </p>
+
+                <p className="mt-1 text-xs font-bold text-white">
                   {activeSide ===
                   "front"
-                    ? "frente"
-                    : "reverso"}
-                </span>{" "}
-                de la playera.
-              </p>
-            </div>
+                    ? "Frente"
+                    : "Espalda"}
+                </p>
+              </div>
 
-            {/* ============================================= */}
-            {/* EDITOR FRENTE */}
-            {/* ============================================= */}
+              <div className="h-8 w-px bg-white/10" />
 
-            <div
-              className={
-                activeSide ===
-                "front"
-                  ? "block w-full min-w-0"
-                  : "hidden"
-              }
-            >
-              <FabricEditor
-                onChange={
-                  setFrontDesign
-                }
-              />
-            </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                  En este lado
+                </p>
 
-            {/* ============================================= */}
-            {/* EDITOR ESPALDA */}
-            {/* ============================================= */}
-
-            <div
-              className={
-                activeSide ===
-                "back"
-                  ? "block w-full min-w-0"
-                  : "hidden"
-              }
-            >
-              <FabricEditor
-                onChange={
-                  setBackDesign
-                }
-              />
-            </div>
-
-            {/* ============================================= */}
-            {/* RESUMEN */}
-            {/* ============================================= */}
-
-            <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                    Tu diseño
-                  </p>
-
-                  <h3 className="mt-2 text-xl font-bold text-white">
-                    Resumen
-                  </h3>
-                </div>
-
-                <span className="shrink-0 rounded-full border border-white/10 bg-black px-3 py-1 text-xs font-bold text-zinc-400">
-                  {totalObjects}{" "}
-                  {totalObjects ===
+                <p className="mt-1 text-xs font-bold text-white">
+                  {currentObjects}{" "}
+                  {currentObjects ===
                   1
                     ? "elemento"
                     : "elementos"}
-                </span>
+                </p>
               </div>
 
-              <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
-                <div className="flex items-center justify-between gap-4 py-4">
-                  <span className="text-sm text-zinc-500">
-                    Color
+              <div className="h-8 w-px bg-white/10" />
+
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                  Total
+                </p>
+
+                <p className="mt-1 text-xs font-bold text-white">
+                  {totalObjects}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ================================================= */}
+          {/* GRID */}
+          {/* ================================================= */}
+
+          <div className="grid w-full min-w-0 grid-cols-1 gap-0 xl:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.92fr)]">
+            {/* ================================================= */}
+            {/* 3D */}
+            {/* ================================================= */}
+
+            <div className="min-w-0 border-b border-white/10 xl:border-b-0 xl:border-r">
+              <div className="xl:sticky xl:top-20 xl:self-start">
+                <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white">
+                      Vista previa
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-600">
+                      Arrastra para rotar · pellizca para zoom
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.15em] text-red-500">
+                    3D
                   </span>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-4 w-4 rounded-full border border-white/20"
-                      style={{
-                        backgroundColor:
-                          selectedColor.hex,
-                      }}
-                    />
+                <div className="h-[560px] w-full min-w-0 sm:h-[640px] xl:h-[720px]">
+                  <Shirt3D
+                    color={
+                      selectedColor.hex
+                    }
+                    frontDesign={
+                      frontDesign.preview
+                    }
+                    backDesign={
+                      backDesign.preview
+                    }
+                    activeSide={
+                      activeSide
+                    }
+                  />
+                </div>
+              </div>
+            </div>
 
-                    <span className="text-sm font-bold text-white">
+            {/* ================================================= */}
+            {/* EDITOR */}
+            {/* ================================================= */}
+
+            <div className="w-full min-w-0 bg-[#0d0d0d]">
+              {/* ============================================= */}
+              {/* CABECERA EDITOR */}
+              {/* ============================================= */}
+
+              <div className="border-b border-white/10 p-4 sm:p-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-red-500">
+                    Herramientas
+                  </p>
+
+                  <h3 className="mt-1 text-lg font-bold text-white">
+                    Edita tu diseño
+                  </h3>
+                </div>
+
+                {/* ========================================= */}
+                {/* PESTAÑAS */}
+                {/* ========================================= */}
+
+                <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black p-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePanel(
+                        "design"
+                      )
+                    }
+                    className={`rounded-xl px-2 py-3 text-[10px] font-bold uppercase tracking-[0.12em] transition sm:text-xs ${
+                      activePanel ===
+                      "design"
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    Diseño
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePanel(
+                        "text"
+                      )
+                    }
+                    className={`rounded-xl px-2 py-3 text-[10px] font-bold uppercase tracking-[0.12em] transition sm:text-xs ${
+                      activePanel ===
+                      "text"
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    Texto
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePanel(
+                        "layers"
+                      )
+                    }
+                    className={`rounded-xl px-2 py-3 text-[10px] font-bold uppercase tracking-[0.12em] transition sm:text-xs ${
+                      activePanel ===
+                      "layers"
+                        ? "bg-red-600 text-white"
+                        : "text-zinc-500 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    Capas
+                  </button>
+                </div>
+              </div>
+
+              {/* ============================================= */}
+              {/* COLOR DE PLAYERA */}
+              {/* ============================================= */}
+
+              {activePanel ===
+                "design" && (
+                <div className="border-b border-white/10 p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600">
+                        Playera
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold text-white">
+                        Color
+                      </p>
+                    </div>
+
+                    <span className="text-xs font-bold text-zinc-400">
                       {
                         selectedColor.name
                       }
                     </span>
                   </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {shirtColors.map(
+                      (color) => {
+                        const selected =
+                          selectedColor.name ===
+                          color.name;
+
+                        return (
+                          <button
+                            key={
+                              color.name
+                            }
+                            type="button"
+                            onClick={() =>
+                              setSelectedColor(
+                                color
+                              )
+                            }
+                            title={
+                              color.name
+                            }
+                            aria-label={`Color ${color.name}`}
+                            className={`relative h-10 w-10 rounded-full border-2 transition ${
+                              selected
+                                ? "scale-110 border-red-500"
+                                : "border-white/15 hover:scale-105 hover:border-white/50"
+                            }`}
+                            style={{
+                              backgroundColor:
+                                color.hex,
+                            }}
+                          >
+                            {selected && (
+                              <span className="absolute -bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-red-500" />
+                            )}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================= */}
+              {/* FABRIC */}
+              {/* ============================================= */}
+
+              <div className="w-full min-w-0 p-4 sm:p-5">
+                <div
+                  className={
+                    activeSide ===
+                    "front"
+                      ? "block"
+                      : "hidden"
+                  }
+                >
+                  <FabricEditor
+                    panel={
+                      activePanel
+                    }
+                    onChange={
+                      setFrontDesign
+                    }
+                  />
                 </div>
 
-                <div className="flex items-center justify-between gap-4 py-4">
-                  <span className="text-sm text-zinc-500">
-                    Frente
-                  </span>
-
-                  <span className="text-sm font-bold text-white">
-                    {
-                      frontDesign.objectCount
-                    }{" "}
-                    {frontDesign.objectCount ===
-                    1
-                      ? "elemento"
-                      : "elementos"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between gap-4 py-4">
-                  <span className="text-sm text-zinc-500">
-                    Espalda
-                  </span>
-
-                  <span className="text-sm font-bold text-white">
-                    {
-                      backDesign.objectCount
-                    }{" "}
-                    {backDesign.objectCount ===
-                    1
-                      ? "elemento"
-                      : "elementos"}
-                  </span>
+                <div
+                  className={
+                    activeSide ===
+                    "back"
+                      ? "block"
+                      : "hidden"
+                  }
+                >
+                  <FabricEditor
+                    panel={
+                      activePanel
+                    }
+                    onChange={
+                      setBackDesign
+                    }
+                  />
                 </div>
               </div>
 
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-6 block w-full rounded-xl bg-red-600 px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:-translate-y-0.5 hover:bg-red-500"
-              >
-                Cotizar mi diseño
-              </a>
+              {/* ============================================= */}
+              {/* RESUMEN / CTA */}
+              {/* ============================================= */}
 
-              <p className="mt-3 text-center text-[10px] leading-5 text-zinc-600">
-                Tu diseño será revisado antes de
-                iniciar la producción.
-              </p>
+              <div className="border-t border-white/10 p-5">
+                <div className="rounded-2xl border border-white/10 bg-black p-4">
+                  <div className="grid grid-cols-3 divide-x divide-white/10">
+                    <div className="px-2 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+                        Color
+                      </p>
+
+                      <p className="mt-2 truncate text-xs font-bold text-white">
+                        {
+                          selectedColor.name
+                        }
+                      </p>
+                    </div>
+
+                    <div className="px-2 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+                        Frente
+                      </p>
+
+                      <p className="mt-2 text-xs font-bold text-white">
+                        {
+                          frontDesign.objectCount
+                        }
+                      </p>
+                    </div>
+
+                    <div className="px-2 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-600">
+                        Espalda
+                      </p>
+
+                      <p className="mt-2 text-xs font-bold text-white">
+                        {
+                          backDesign.objectCount
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href={
+                    whatsappUrl
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 block w-full rounded-xl bg-red-600 px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:-translate-y-0.5 hover:bg-red-500"
+                >
+                  Cotizar mi diseño
+                </a>
+
+                <p className="mt-3 text-center text-[10px] leading-5 text-zinc-600">
+                  Revisaremos contigo tamaño,
+                  ubicación y detalles antes de
+                  producir la playera.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* ================================================= */}
-        {/* AVISO */}
-        {/* ================================================= */}
-
-        <div className="mt-6 w-full min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4">
-          <p className="text-xs leading-5 text-zinc-600">
-            El personalizador ofrece una
-            representación visual del producto.
-            Tamaño, ubicación y características
-            del estampado se confirman antes de
-            fabricar el pedido.
-          </p>
         </div>
       </Container>
     </section>

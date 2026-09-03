@@ -21,10 +21,17 @@ export type EditorSnapshot = {
   objectCount: number;
 };
 
+export type FabricEditorPanel =
+  | "design"
+  | "text"
+  | "layers";
+
 type FabricEditorProps = {
   onChange?: (
     snapshot: EditorSnapshot
   ) => void;
+
+  panel?: FabricEditorPanel;
 };
 
 type SelectedType =
@@ -36,10 +43,6 @@ type TextAlignment =
   | "left"
   | "center"
   | "right";
-
-/* ========================================================= */
-/* CONFIGURACIÓN */
-/* ========================================================= */
 
 const HISTORY_LIMIT = 40;
 
@@ -106,6 +109,7 @@ function fileToDataUrl(
 
 export default function FabricEditor({
   onChange,
+  panel = "design",
 }: FabricEditorProps) {
   const htmlCanvasRef =
     useRef<HTMLCanvasElement | null>(
@@ -154,7 +158,7 @@ export default function FabricEditor({
   ] = useState(false);
 
   /* ======================================================= */
-  /* INPUT ÚNICO */
+  /* INPUT */
   /* ======================================================= */
 
   const reactId =
@@ -167,7 +171,7 @@ export default function FabricEditor({
     )}`;
 
   /* ======================================================= */
-  /* ESTADO GENERAL */
+  /* ESTADO */
   /* ======================================================= */
 
   const [
@@ -191,7 +195,7 @@ export default function FabricEditor({
   ] = useState(0);
 
   /* ======================================================= */
-  /* TRANSFORMACIÓN DEL ELEMENTO */
+  /* TRANSFORMACIÓN */
   /* ======================================================= */
 
   const [
@@ -215,7 +219,7 @@ export default function FabricEditor({
   ] = useState(100);
 
   /* ======================================================= */
-  /* ESTADO DEL TEXTO */
+  /* TEXTO */
   /* ======================================================= */
 
   const [
@@ -271,7 +275,7 @@ export default function FabricEditor({
   }, [onChange]);
 
   /* ======================================================= */
-  /* BOTONES HISTORIAL */
+  /* HISTORIAL */
   /* ======================================================= */
 
   const updateHistoryButtons =
@@ -288,7 +292,7 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* SNAPSHOT / VISTA 3D */
+  /* SNAPSHOT */
   /* ======================================================= */
 
   const emitSnapshot =
@@ -385,7 +389,9 @@ export default function FabricEditor({
           history.length - 1
         ];
 
-      if (last === json) {
+      if (
+        last === json
+      ) {
         return;
       }
 
@@ -409,7 +415,7 @@ export default function FabricEditor({
     ]);
 
   /* ======================================================= */
-  /* RESTAURAR HISTORIAL */
+  /* RESTAURAR */
   /* ======================================================= */
 
   const restoreState =
@@ -465,18 +471,13 @@ export default function FabricEditor({
     );
 
   /* ======================================================= */
-  /* DESHACER */
+  /* UNDO */
   /* ======================================================= */
 
   const undo =
     useCallback(async () => {
       if (
-        restoringHistoryRef.current
-      ) {
-        return;
-      }
-
-      if (
+        restoringHistoryRef.current ||
         undoStackRef.current
           .length <= 1
       ) {
@@ -511,7 +512,7 @@ export default function FabricEditor({
     ]);
 
   /* ======================================================= */
-  /* REHACER */
+  /* REDO */
   /* ======================================================= */
 
   const redo =
@@ -609,7 +610,7 @@ export default function FabricEditor({
     );
 
   /* ======================================================= */
-  /* SINCRONIZAR POSICIÓN / ROTACIÓN / ESCALA */
+  /* SINCRONIZAR TRANSFORM */
   /* ======================================================= */
 
   const syncTransformControls =
@@ -671,7 +672,7 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* CREAR CANVAS */
+  /* CANVAS */
   /* ======================================================= */
 
   useEffect(() => {
@@ -700,10 +701,6 @@ export default function FabricEditor({
 
     fabricCanvasRef.current =
       canvas;
-
-    /* ===================================================== */
-    /* SELECCIÓN */
-    /* ===================================================== */
 
     const updateSelection =
       () => {
@@ -739,10 +736,6 @@ export default function FabricEditor({
           "image"
         );
       };
-
-    /* ===================================================== */
-    /* EVENTOS */
-    /* ===================================================== */
 
     const handleAdded =
       () => {
@@ -857,10 +850,6 @@ export default function FabricEditor({
       handleLiveChange
     );
 
-    /* ===================================================== */
-    /* ESTADO INICIAL */
-    /* ===================================================== */
-
     undoStackRef.current = [
       JSON.stringify(
         canvas.toJSON()
@@ -873,10 +862,6 @@ export default function FabricEditor({
     updateHistoryButtons();
 
     emitSnapshot();
-
-    /* ===================================================== */
-    /* CLEANUP */
-    /* ===================================================== */
 
     return () => {
       if (
@@ -902,23 +887,16 @@ export default function FabricEditor({
   ]);
 
   /* ======================================================= */
-  /* OBJETO ACTIVO */
+  /* HELPERS */
   /* ======================================================= */
 
   function getActiveObject() {
-    const canvas =
-      fabricCanvasRef.current;
-
-    if (!canvas) {
-      return null;
-    }
-
-    return canvas.getActiveObject();
+    return (
+      fabricCanvasRef.current
+        ?.getActiveObject() ??
+      null
+    );
   }
-
-  /* ======================================================= */
-  /* TEXTO ACTIVO */
-  /* ======================================================= */
 
   function getActiveText() {
     const active =
@@ -935,10 +913,6 @@ export default function FabricEditor({
 
     return active;
   }
-
-  /* ======================================================= */
-  /* FINALIZAR CAMBIO */
-  /* ======================================================= */
 
   function finishChange() {
     const canvas =
@@ -963,7 +937,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* AGREGAR TEXTO */
+  /* TEXTO */
   /* ======================================================= */
 
   function addText() {
@@ -984,7 +958,6 @@ export default function FabricEditor({
         {
           left: 150,
           top: 180,
-
           width: 200,
 
           fill:
@@ -1057,7 +1030,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* AGREGAR IMÁGENES */
+  /* IMÁGENES */
   /* ======================================================= */
 
   async function addImages(
@@ -1075,12 +1048,6 @@ export default function FabricEditor({
         event.target.files ??
           []
       );
-
-    if (
-      files.length === 0
-    ) {
-      return;
-    }
 
     const allowedTypes = [
       "image/png",
@@ -1116,26 +1083,16 @@ export default function FabricEditor({
             dataUrl
           );
 
-        const originalWidth =
+        const width =
           image.width || 1;
 
-        const originalHeight =
+        const height =
           image.height || 1;
-
-        const maximumWidth =
-          190;
-
-        const maximumHeight =
-          190;
 
         const scale =
           Math.min(
-            maximumWidth /
-              originalWidth,
-
-            maximumHeight /
-              originalHeight,
-
+            190 / width,
+            190 / height,
             1
           );
 
@@ -1203,8 +1160,69 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* ELIMINAR */
+  /* DUPLICAR / ELIMINAR */
   /* ======================================================= */
+
+  async function duplicateSelected() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    const clone =
+      await active.clone();
+
+    clone.set({
+      left:
+        (active.left ?? 0) +
+        20,
+
+      top:
+        (active.top ?? 0) +
+        20,
+
+      evented: true,
+    });
+
+    canvas.add(
+      clone
+    );
+
+    canvas.setActiveObject(
+      clone
+    );
+
+    canvas.renderAll();
+
+    if (
+      clone instanceof
+      Textbox
+    ) {
+      setSelectedType(
+        "text"
+      );
+
+      syncTextControls(
+        clone
+      );
+    } else {
+      setSelectedType(
+        "image"
+      );
+    }
+
+    syncTransformControls();
+
+    emitSnapshot();
+  }
 
   function deleteSelected() {
     const canvas =
@@ -1214,12 +1232,11 @@ export default function FabricEditor({
       return;
     }
 
-    const activeObjects =
+    const objects =
       canvas.getActiveObjects();
 
     if (
-      activeObjects.length ===
-      0
+      objects.length === 0
     ) {
       return;
     }
@@ -1227,12 +1244,11 @@ export default function FabricEditor({
     restoringHistoryRef.current =
       true;
 
-    activeObjects.forEach(
-      (object) => {
+    objects.forEach(
+      (object) =>
         canvas.remove(
           object
-        );
-      }
+        )
     );
 
     restoringHistoryRef.current =
@@ -1246,90 +1262,163 @@ export default function FabricEditor({
       null
     );
 
-    setSelectedX(0);
-    setSelectedY(0);
-    setSelectedAngle(0);
-    setSelectedScale(100);
-
     emitSnapshot();
+
     saveHistory();
   }
 
   /* ======================================================= */
-  /* DUPLICAR */
+  /* TEXTO: ESTILO */
   /* ======================================================= */
 
-  async function duplicateSelected() {
-    const canvas =
-      fabricCanvasRef.current;
+  function updateTextColor(
+    color: string
+  ) {
+    setSelectedTextColor(
+      color
+    );
 
-    if (!canvas) {
+    const text =
+      getActiveText();
+
+    if (!text) {
       return;
     }
 
-    const active =
-      canvas.getActiveObject();
+    text.set({
+      fill: color,
+    });
 
-    if (!active) {
+    finishChange();
+  }
+
+  function updateFontFamily(
+    value: string
+  ) {
+    setSelectedFontFamily(
+      value
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
       return;
     }
 
-    try {
-      const clone =
-        await active.clone();
+    text.set({
+      fontFamily:
+        value,
+    });
 
-      clone.set({
-        left:
-          (active.left ??
-            0) + 20,
+    finishChange();
+  }
 
-        top:
-          (active.top ??
-            0) + 20,
-
-        evented: true,
-      });
-
-      canvas.add(
-        clone
+  function updateFontSize(
+    value: number
+  ) {
+    const size =
+      Math.min(
+        Math.max(
+          value,
+          12
+        ),
+        120
       );
 
-      canvas.setActiveObject(
-        clone
-      );
+    setSelectedFontSize(
+      size
+    );
 
-      canvas.renderAll();
+    const text =
+      getActiveText();
 
-      if (
-        clone instanceof
-        Textbox
-      ) {
-        setSelectedType(
-          "text"
-        );
-
-        syncTextControls(
-          clone
-        );
-      } else {
-        setSelectedType(
-          "image"
-        );
-      }
-
-      syncTransformControls();
-
-      emitSnapshot();
-    } catch (error) {
-      console.error(
-        "No fue posible duplicar el elemento:",
-        error
-      );
+    if (!text) {
+      return;
     }
+
+    text.set({
+      fontSize:
+        size,
+    });
+
+    finishChange();
+  }
+
+  function toggleBold() {
+    const next =
+      !selectedBold;
+
+    setSelectedBold(
+      next
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontWeight:
+        next
+          ? "bold"
+          : "normal",
+    });
+
+    finishChange();
+  }
+
+  function toggleItalic() {
+    const next =
+      !selectedItalic;
+
+    setSelectedItalic(
+      next
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontStyle:
+        next
+          ? "italic"
+          : "normal",
+    });
+
+    finishChange();
+  }
+
+  function updateAlignment(
+    alignment: TextAlignment
+  ) {
+    setSelectedAlignment(
+      alignment
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      textAlign:
+        alignment,
+    });
+
+    finishChange();
   }
 
   /* ======================================================= */
-  /* AJUSTE PRECISO: X */
+  /* TRANSFORMACIONES */
   /* ======================================================= */
 
   function updatePositionX(
@@ -1364,10 +1453,6 @@ export default function FabricEditor({
     emitSnapshot();
   }
 
-  /* ======================================================= */
-  /* AJUSTE PRECISO: Y */
-  /* ======================================================= */
-
   function updatePositionY(
     value: number
   ) {
@@ -1400,10 +1485,6 @@ export default function FabricEditor({
     emitSnapshot();
   }
 
-  /* ======================================================= */
-  /* AJUSTE PRECISO: ROTACIÓN */
-  /* ======================================================= */
-
   function updateObjectAngle(
     value: number
   ) {
@@ -1435,10 +1516,6 @@ export default function FabricEditor({
     emitSnapshot();
   }
 
-  /* ======================================================= */
-  /* AJUSTE PRECISO: ESCALA */
-  /* ======================================================= */
-
   function updateObjectScale(
     value: number
   ) {
@@ -1455,7 +1532,7 @@ export default function FabricEditor({
       return;
     }
 
-    const safeValue =
+    const safe =
       Math.min(
         Math.max(
           value,
@@ -1465,18 +1542,15 @@ export default function FabricEditor({
       );
 
     const scale =
-      safeValue / 100;
+      safe / 100;
 
     setSelectedScale(
-      safeValue
+      safe
     );
 
     active.set({
-      scaleX:
-        scale,
-
-      scaleY:
-        scale,
+      scaleX: scale,
+      scaleY: scale,
     });
 
     active.setCoords();
@@ -1486,39 +1560,9 @@ export default function FabricEditor({
     emitSnapshot();
   }
 
-  /* ======================================================= */
-  /* GUARDAR TRANSFORMACIÓN */
-  /* ======================================================= */
-
   function saveTransformChange() {
-    const canvas =
-      fabricCanvasRef.current;
-
-    if (!canvas) {
-      return;
-    }
-
-    const active =
-      canvas.getActiveObject();
-
-    if (!active) {
-      return;
-    }
-
-    active.setCoords();
-
-    canvas.requestRenderAll();
-
-    syncTransformControls();
-
-    emitSnapshot();
-
-    saveHistory();
+    finishChange();
   }
-
-  /* ======================================================= */
-  /* CENTRAR HORIZONTAL */
-  /* ======================================================= */
 
   function centerHorizontal() {
     const canvas =
@@ -1541,28 +1585,18 @@ export default function FabricEditor({
       bounds.left +
       bounds.width / 2;
 
-    const desiredCenter =
+    const desired =
       canvas.getWidth() / 2;
-
-    const difference =
-      desiredCenter -
-      currentCenter;
 
     active.set({
       left:
-        (active.left ??
-          0) +
-        difference,
+        (active.left ?? 0) +
+        desired -
+        currentCenter,
     });
-
-    active.setCoords();
 
     finishChange();
   }
-
-  /* ======================================================= */
-  /* CENTRAR VERTICAL */
-  /* ======================================================= */
 
   function centerVertical() {
     const canvas =
@@ -1585,27 +1619,21 @@ export default function FabricEditor({
       bounds.top +
       bounds.height / 2;
 
-    const desiredCenter =
+    const desired =
       canvas.getHeight() / 2;
-
-    const difference =
-      desiredCenter -
-      currentCenter;
 
     active.set({
       top:
-        (active.top ??
-          0) +
-        difference,
+        (active.top ?? 0) +
+        desired -
+        currentCenter,
     });
-
-    active.setCoords();
 
     finishChange();
   }
 
   /* ======================================================= */
-  /* CAPAS: SUBIR */
+  /* CAPAS */
   /* ======================================================= */
 
   function moveLayerUp() {
@@ -1626,16 +1654,8 @@ export default function FabricEditor({
       active
     );
 
-    canvas.setActiveObject(
-      active
-    );
-
     finishChange();
   }
-
-  /* ======================================================= */
-  /* CAPAS: BAJAR */
-  /* ======================================================= */
 
   function moveLayerDown() {
     const canvas =
@@ -1655,16 +1675,8 @@ export default function FabricEditor({
       active
     );
 
-    canvas.setActiveObject(
-      active
-    );
-
     finishChange();
   }
-
-  /* ======================================================= */
-  /* CAPAS: AL FRENTE */
-  /* ======================================================= */
 
   function moveLayerToFront() {
     const canvas =
@@ -1684,16 +1696,8 @@ export default function FabricEditor({
       active
     );
 
-    canvas.setActiveObject(
-      active
-    );
-
     finishChange();
   }
-
-  /* ======================================================= */
-  /* CAPAS: AL FONDO */
-  /* ======================================================= */
 
   function moveLayerToBack() {
     const canvas =
@@ -1712,179 +1716,6 @@ export default function FabricEditor({
     canvas.sendObjectToBack(
       active
     );
-
-    canvas.setActiveObject(
-      active
-    );
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* COLOR TEXTO */
-  /* ======================================================= */
-
-  function updateTextColor(
-    color: string
-  ) {
-    setSelectedTextColor(
-      color
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      fill: color,
-    });
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* TIPOGRAFÍA */
-  /* ======================================================= */
-
-  function updateFontFamily(
-    fontFamily: string
-  ) {
-    setSelectedFontFamily(
-      fontFamily
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      fontFamily,
-    });
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* TAMAÑO DE LETRA */
-  /* ======================================================= */
-
-  function updateFontSize(
-    size: number
-  ) {
-    const safeSize =
-      Math.min(
-        Math.max(
-          size,
-          12
-        ),
-        120
-      );
-
-    setSelectedFontSize(
-      safeSize
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      fontSize:
-        safeSize,
-    });
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* NEGRITA */
-  /* ======================================================= */
-
-  function toggleBold() {
-    const next =
-      !selectedBold;
-
-    setSelectedBold(
-      next
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      fontWeight:
-        next
-          ? "bold"
-          : "normal",
-    });
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* CURSIVA */
-  /* ======================================================= */
-
-  function toggleItalic() {
-    const next =
-      !selectedItalic;
-
-    setSelectedItalic(
-      next
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      fontStyle:
-        next
-          ? "italic"
-          : "normal",
-    });
-
-    finishChange();
-  }
-
-  /* ======================================================= */
-  /* ALINEACIÓN */
-  /* ======================================================= */
-
-  function updateAlignment(
-    alignment: TextAlignment
-  ) {
-    setSelectedAlignment(
-      alignment
-    );
-
-    const text =
-      getActiveText();
-
-    if (!text) {
-      return;
-    }
-
-    text.set({
-      textAlign:
-        alignment,
-    });
 
     finishChange();
   }
@@ -1914,11 +1745,10 @@ export default function FabricEditor({
       true;
 
     objects.forEach(
-      (object) => {
+      (object) =>
         canvas.remove(
           object
-        );
-      }
+        )
     );
 
     restoringHistoryRef.current =
@@ -1932,12 +1762,8 @@ export default function FabricEditor({
       null
     );
 
-    setSelectedX(0);
-    setSelectedY(0);
-    setSelectedAngle(0);
-    setSelectedScale(100);
-
     emitSnapshot();
+
     saveHistory();
   }
 
@@ -1966,11 +1792,10 @@ export default function FabricEditor({
           return;
         }
 
-        const commandKey =
-          event.ctrlKey ||
-          event.metaKey;
-
-        if (!commandKey) {
+        if (
+          !event.ctrlKey &&
+          !event.metaKey
+        ) {
           return;
         }
 
@@ -2006,12 +1831,11 @@ export default function FabricEditor({
       handleKeyboard
     );
 
-    return () => {
+    return () =>
       window.removeEventListener(
         "keydown",
         handleKeyboard
       );
-    };
   }, [
     undo,
     redo,
@@ -2022,181 +1846,181 @@ export default function FabricEditor({
   /* ======================================================= */
 
   return (
-    <div className="grid w-full min-w-0 gap-5 overflow-hidden">
-
+    <div className="w-full min-w-0 space-y-4">
       {/* ================================================= */}
-      {/* HISTORIAL */}
+      {/* HISTORIAL COMPACTO */}
       {/* ================================================= */}
 
-      <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-4">
-        <div className="flex min-w-0 items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-              Historial
-            </p>
+      <div className="flex min-w-0 items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-3">
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+            Historial
+          </p>
 
-            <p className="mt-1 text-xs leading-5 text-zinc-600">
-              Deshaz o recupera tus últimos cambios.
-            </p>
-          </div>
+          <p className="mt-1 truncate text-xs text-zinc-400">
+            Deshacer / Rehacer
+          </p>
+        </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                void undo()
-              }
-              disabled={
-                !canUndo
-              }
-              title="Deshacer"
-              aria-label="Deshacer"
-              className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black text-2xl font-bold text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              ↶
-            </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              void undo()
+            }
+            disabled={
+              !canUndo
+            }
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:opacity-20"
+          >
+            ↶
+          </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                void redo()
-              }
-              disabled={
-                !canRedo
-              }
-              title="Rehacer"
-              aria-label="Rehacer"
-              className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black text-2xl font-bold text-white transition hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              ↷
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              void redo()
+            }
+            disabled={
+              !canRedo
+            }
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-[#111] text-xl text-white transition hover:border-red-500/50 hover:text-red-500 disabled:opacity-20"
+          >
+            ↷
+          </button>
         </div>
       </div>
 
       {/* ================================================= */}
-      {/* HERRAMIENTAS */}
+      {/* PANEL DISEÑO */}
       {/* ================================================= */}
 
-      <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5">
-        <div className="flex min-w-0 flex-col gap-5">
+      {panel ===
+        "design" && (
+        <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+            Logos e imágenes
+          </p>
 
-          {/* ============================================= */}
-          {/* AGREGAR TEXTO */}
-          {/* ============================================= */}
+          <p className="mt-2 text-xs leading-5 text-zinc-600">
+            Sube uno o varios elementos para agregarlos a tu diseño.
+          </p>
 
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500">
-              Agregar texto
-            </p>
+          <label
+            htmlFor={
+              uploadInputId
+            }
+            className="mt-5 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-white/15 bg-black p-4 transition hover:border-red-500/50"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">
+                Subir logos o imágenes
+              </p>
 
-            <div className="mt-3 flex min-w-0 gap-2">
-              <input
-                type="text"
-                value={
-                  textValue
-                }
-                onChange={(
-                  event
-                ) =>
-                  setTextValue(
-                    event.target.value
-                  )
-                }
-                onKeyDown={(
-                  event
-                ) => {
-                  if (
-                    event.key ===
-                    "Enter"
-                  ) {
-                    addText();
-                  }
-                }}
-                placeholder="Escribe tu texto"
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-red-500"
-              />
-
-              <button
-                type="button"
-                onClick={
-                  addText
-                }
-                className="shrink-0 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-500"
-              >
-                + Texto
-              </button>
+              <p className="mt-1 text-xs text-zinc-600">
+                PNG, JPG o WEBP
+              </p>
             </div>
-          </div>
 
-          {/* ============================================= */}
-          {/* LOGOS */}
-          {/* ============================================= */}
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-600 text-xl font-bold text-white">
+              +
+            </span>
+          </label>
 
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500">
-              Agregar logos
-            </p>
+          <input
+            ref={
+              fileInputRef
+            }
+            id={
+              uploadInputId
+            }
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/webp"
+            onChange={
+              addImages
+            }
+            className="hidden"
+          />
 
-            <label
-              htmlFor={
-                uploadInputId
-              }
-              className="mt-3 flex min-w-0 cursor-pointer items-center justify-between gap-4 rounded-xl border border-dashed border-white/15 bg-black px-4 py-4 transition hover:border-red-500/50"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-white">
-                  Subir logos o imágenes
-                </p>
+          {selectedType ===
+            "image" && (
+            <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+              <p className="text-xs font-bold text-white">
+                Imagen seleccionada
+              </p>
 
-                <p className="mt-1 text-xs leading-5 text-zinc-600">
-                  PNG, JPG o WEBP. Puedes seleccionar varios.
-                </p>
-              </div>
+              <p className="mt-1 text-xs text-zinc-600">
+                Puedes moverla directamente dentro del editor o usar la pestaña Capas para realizar ajustes precisos.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl text-white">
-                +
-              </span>
-            </label>
+      {/* ================================================= */}
+      {/* PANEL TEXTO */}
+      {/* ================================================= */}
 
+      {panel ===
+        "text" && (
+        <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+            Texto
+          </p>
+
+          <div className="mt-4 flex min-w-0 gap-2">
             <input
-              ref={
-                fileInputRef
+              value={
+                textValue
               }
-              id={
-                uploadInputId
+              onChange={(
+                event
+              ) =>
+                setTextValue(
+                  event.target.value
+                )
               }
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              onChange={
-                addImages
-              }
-              className="hidden"
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+                  addText();
+                }
+              }}
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-red-500"
             />
+
+            <button
+              type="button"
+              onClick={
+                addText
+              }
+              className="shrink-0 rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-500"
+            >
+              + Texto
+            </button>
           </div>
 
-          {/* ============================================= */}
-          {/* EDITOR DE TEXTO */}
-          {/* ============================================= */}
+          {selectedType !==
+            "text" && (
+            <div className="mt-5 rounded-xl border border-white/10 bg-black p-4">
+              <p className="text-xs leading-5 text-zinc-500">
+                Agrega un texto o selecciónalo dentro del editor para mostrar sus opciones.
+              </p>
+            </div>
+          )}
 
           {selectedType ===
             "text" && (
-            <div className="border-t border-white/10 pt-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                  Editor de texto
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-zinc-600">
-                  Personaliza el texto seleccionado.
-                </p>
-              </div>
-
+            <div className="mt-6 space-y-5 border-t border-white/10 pt-5">
               {/* TIPOGRAFÍA */}
 
-              <div className="mt-5">
-                <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600">
                   Tipografía
                 </label>
 
@@ -2211,7 +2035,7 @@ export default function FabricEditor({
                       event.target.value
                     )
                   }
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-red-500"
                 >
                   {FONT_OPTIONS.map(
                     (font) => (
@@ -2222,10 +2046,6 @@ export default function FabricEditor({
                         value={
                           font
                         }
-                        style={{
-                          fontFamily:
-                            font,
-                        }}
                       >
                         {font}
                       </option>
@@ -2234,15 +2054,15 @@ export default function FabricEditor({
                 </select>
               </div>
 
-              {/* TAMAÑO DE LETRA */}
+              {/* TAMAÑO */}
 
-              <div className="mt-5">
-                <div className="flex items-center justify-between gap-4">
-                  <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                    Tamaño de letra
-                  </label>
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600">
+                    Tamaño
+                  </p>
 
-                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
+                  <span className="text-xs font-bold text-white">
                     {
                       selectedFontSize
                     }
@@ -2250,220 +2070,180 @@ export default function FabricEditor({
                   </span>
                 </div>
 
-                <div className="mt-3 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateFontSize(
-                        selectedFontSize -
-                          2
+                <input
+                  type="range"
+                  min="12"
+                  max="120"
+                  value={
+                    selectedFontSize
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateFontSize(
+                      Number(
+                        event.target.value
                       )
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black text-lg font-bold text-white transition hover:border-red-500"
-                  >
-                    −
-                  </button>
-
-                  <input
-                    type="range"
-                    min="12"
-                    max="120"
-                    step="1"
-                    value={
-                      selectedFontSize
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateFontSize(
-                        Number(
-                          event.target.value
-                        )
-                      )
-                    }
-                    className="min-w-0 flex-1 accent-red-600"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateFontSize(
-                        selectedFontSize +
-                          2
-                      )
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black text-lg font-bold text-white transition hover:border-red-500"
-                  >
-                    +
-                  </button>
-                </div>
+                    )
+                  }
+                  className="mt-3 w-full accent-red-600"
+                />
               </div>
 
               {/* ESTILO */}
 
-              <div className="mt-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                  Estilo
-                </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    toggleBold
+                  }
+                  className={`rounded-xl border px-3 py-3 text-xs font-bold ${
+                    selectedBold
+                      ? "border-red-500 bg-red-500/10 text-red-500"
+                      : "border-white/10 bg-black text-white"
+                  }`}
+                >
+                  B Negrita
+                </button>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={
-                      toggleBold
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm font-black transition ${
-                      selectedBold
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-white/10 bg-black text-white hover:border-white/30"
-                    }`}
-                  >
-                    B Negrita
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      toggleItalic
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm italic transition ${
-                      selectedItalic
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-white/10 bg-black text-white hover:border-white/30"
-                    }`}
-                  >
-                    I Cursiva
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={
+                    toggleItalic
+                  }
+                  className={`rounded-xl border px-3 py-3 text-xs font-bold italic ${
+                    selectedItalic
+                      ? "border-red-500 bg-red-500/10 text-red-500"
+                      : "border-white/10 bg-black text-white"
+                  }`}
+                >
+                  I Cursiva
+                </button>
               </div>
 
               {/* ALINEACIÓN */}
 
-              <div className="mt-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                  Alineación
-                </p>
-
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateAlignment(
-                        "left"
-                      )
-                    }
-                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
-                      selectedAlignment ===
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    "left",
+                    "center",
+                    "right",
+                  ] as TextAlignment[]
+                ).map(
+                  (
+                    alignment
+                  ) => (
+                    <button
+                      key={
+                        alignment
+                      }
+                      type="button"
+                      onClick={() =>
+                        updateAlignment(
+                          alignment
+                        )
+                      }
+                      className={`rounded-xl border px-2 py-3 text-xs font-bold ${
+                        selectedAlignment ===
+                        alignment
+                          ? "border-red-500 bg-red-500/10 text-red-500"
+                          : "border-white/10 bg-black text-white"
+                      }`}
+                    >
+                      {alignment ===
                       "left"
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-white/10 bg-black text-white hover:border-white/30"
-                    }`}
-                  >
-                    Izq.
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateAlignment(
-                        "center"
-                      )
-                    }
-                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
-                      selectedAlignment ===
-                      "center"
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-white/10 bg-black text-white hover:border-white/30"
-                    }`}
-                  >
-                    Centro
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateAlignment(
-                        "right"
-                      )
-                    }
-                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
-                      selectedAlignment ===
-                      "right"
-                        ? "border-red-500 bg-red-500/10 text-red-500"
-                        : "border-white/10 bg-black text-white hover:border-white/30"
-                    }`}
-                  >
-                    Der.
-                  </button>
-                </div>
+                        ? "Izq."
+                        : alignment ===
+                            "center"
+                          ? "Centro"
+                          : "Der."}
+                    </button>
+                  )
+                )}
               </div>
 
               {/* COLOR */}
 
-              <div className="mt-5 flex min-w-0 items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white">
-                    Color del texto
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-4">
+                <div>
+                  <p className="text-xs font-bold text-white">
+                    Color
                   </p>
 
-                  <p className="mt-1 text-xs text-zinc-600">
-                    Cambia el color en tiempo real.
-                  </p>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-xs font-bold uppercase text-zinc-500">
+                  <p className="mt-1 text-[10px] uppercase text-zinc-600">
                     {
                       selectedTextColor
                     }
-                  </span>
-
-                  <input
-                    type="color"
-                    value={
-                      selectedTextColor
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateTextColor(
-                        event.target.value
-                      )
-                    }
-                    className="h-11 w-14 cursor-pointer rounded-lg border border-white/10 bg-black p-1"
-                  />
+                  </p>
                 </div>
+
+                <input
+                  type="color"
+                  value={
+                    selectedTextColor
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateTextColor(
+                      event.target.value
+                    )
+                  }
+                  className="h-11 w-14 cursor-pointer rounded-lg bg-black"
+                />
               </div>
             </div>
           )}
+        </div>
+      )}
 
-          {/* ============================================= */}
-          {/* AJUSTE PRECISO */}
-          {/* ============================================= */}
+      {/* ================================================= */}
+      {/* PANEL CAPAS */}
+      {/* ================================================= */}
+
+      {panel ===
+        "layers" && (
+        <div className="space-y-4">
+          {!selectedType && (
+            <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                Selecciona un elemento
+              </p>
+
+              <p className="mt-2 text-xs leading-5 text-zinc-600">
+                Toca un texto o imagen dentro del editor para mostrar sus controles.
+              </p>
+            </div>
+          )}
 
           {selectedType && (
-            <div className="border-t border-white/10 pt-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                  Ajuste preciso
-                </p>
+            <>
+              {/* AJUSTE PRECISO */}
 
-                <p className="mt-1 text-xs leading-5 text-zinc-600">
-                  Controla la posición, tamaño y rotación del elemento.
-                </p>
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                      Ajuste preciso
+                    </p>
 
-              {/* POSICIÓN */}
+                    <p className="mt-1 text-xs text-zinc-600">
+                      {selectedType ===
+                      "text"
+                        ? "Texto seleccionado"
+                        : "Imagen seleccionada"}
+                    </p>
+                  </div>
+                </div>
 
-              <div className="mt-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                  Posición
-                </p>
+                {/* X Y */}
 
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                      X
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <label>
+                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                      Posición X
                     </span>
 
                     <input
@@ -2483,13 +2263,13 @@ export default function FabricEditor({
                       onBlur={
                         saveTransformChange
                       }
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-red-500"
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
                     />
                   </label>
 
-                  <label className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                      Y
+                  <label>
+                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                      Posición Y
                     </span>
 
                     <input
@@ -2509,114 +2289,100 @@ export default function FabricEditor({
                       onBlur={
                         saveTransformChange
                       }
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-red-500"
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm font-bold text-white outline-none focus:border-red-500"
                     />
                   </label>
                 </div>
-              </div>
 
-              {/* ROTACIÓN */}
+                {/* ROTACIÓN */}
 
-              <div className="mt-5">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                    Rotación
-                  </p>
+                <div className="mt-5">
+                  <div className="flex justify-between">
+                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                      Rotación
+                    </span>
 
-                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
-                    {
+                    <span className="text-xs font-bold text-white">
+                      {
+                        selectedAngle
+                      }
+                      °
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="-180"
+                    max="180"
+                    value={
                       selectedAngle
                     }
-                    °
-                  </span>
+                    onChange={(
+                      event
+                    ) =>
+                      updateObjectAngle(
+                        Number(
+                          event.target.value
+                        )
+                      )
+                    }
+                    onPointerUp={
+                      saveTransformChange
+                    }
+                    className="mt-3 w-full accent-red-600"
+                  />
                 </div>
 
-                <input
-                  type="range"
-                  min="-180"
-                  max="180"
-                  step="1"
-                  value={
-                    selectedAngle
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateObjectAngle(
-                      Number(
-                        event.target.value
-                      )
-                    )
-                  }
-                  onPointerUp={
-                    saveTransformChange
-                  }
-                  onBlur={
-                    saveTransformChange
-                  }
-                  className="mt-3 w-full accent-red-600"
-                />
-              </div>
+                {/* ESCALA */}
 
-              {/* TAMAÑO */}
+                <div className="mt-5">
+                  <div className="flex justify-between">
+                    <span className="text-[9px] font-bold uppercase text-zinc-600">
+                      Tamaño
+                    </span>
 
-              <div className="mt-5">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                    Tamaño
-                  </p>
+                    <span className="text-xs font-bold text-white">
+                      {
+                        selectedScale
+                      }
+                      %
+                    </span>
+                  </div>
 
-                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
-                    {
+                  <input
+                    type="range"
+                    min="10"
+                    max="300"
+                    value={
                       selectedScale
                     }
-                    %
-                  </span>
+                    onChange={(
+                      event
+                    ) =>
+                      updateObjectScale(
+                        Number(
+                          event.target.value
+                        )
+                      )
+                    }
+                    onPointerUp={
+                      saveTransformChange
+                    }
+                    className="mt-3 w-full accent-red-600"
+                  />
                 </div>
 
-                <input
-                  type="range"
-                  min="10"
-                  max="300"
-                  step="1"
-                  value={
-                    selectedScale
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateObjectScale(
-                      Number(
-                        event.target.value
-                      )
-                    )
-                  }
-                  onPointerUp={
-                    saveTransformChange
-                  }
-                  onBlur={
-                    saveTransformChange
-                  }
-                  className="mt-3 w-full accent-red-600"
-                />
-              </div>
+                {/* CENTRAR */}
 
-              {/* CENTRADO */}
-
-              <div className="mt-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                  Centrar elemento
-                </p>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-5 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={
                       centerHorizontal
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white hover:border-red-500"
                   >
-                    ↔ Horizontal
+                    ↔ Centrar
                   </button>
 
                   <button
@@ -2624,171 +2390,134 @@ export default function FabricEditor({
                     onClick={
                       centerVertical
                     }
-                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                    className="rounded-xl border border-white/10 bg-black px-2 py-3 text-xs font-bold text-white hover:border-red-500"
                   >
-                    ↕ Vertical
+                    ↕ Centrar
                   </button>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* ============================================= */}
-          {/* CAPAS */}
-          {/* ============================================= */}
+              {/* ORDEN */}
 
-          {selectedType && (
-            <div className="border-t border-white/10 pt-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                  Capas
+              <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                  Orden de capa
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-zinc-600">
-                  Controla qué elementos aparecen encima o debajo.
-                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={
+                      moveLayerUp
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                  >
+                    ↑ Subir
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      moveLayerDown
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                  >
+                    ↓ Bajar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      moveLayerToFront
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                  >
+                    ⇈ Al frente
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      moveLayerToBack
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold text-white hover:border-red-500"
+                  >
+                    ⇊ Al fondo
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              {/* ACCIONES */}
+
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={
-                    moveLayerUp
+                    duplicateSelected
                   }
-                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                  className="rounded-xl border border-white/10 bg-[#111] px-3 py-4 text-xs font-bold uppercase text-white hover:border-white/30"
                 >
-                  ↑ Subir
+                  Duplicar
                 </button>
 
                 <button
                   type="button"
                   onClick={
-                    moveLayerDown
+                    deleteSelected
                   }
-                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                  className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-4 text-xs font-bold uppercase text-red-500 hover:border-red-500"
                 >
-                  ↓ Bajar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={
-                    moveLayerToFront
-                  }
-                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
-                >
-                  ⇈ Al frente
-                </button>
-
-                <button
-                  type="button"
-                  onClick={
-                    moveLayerToBack
-                  }
-                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
-                >
-                  ⇊ Al fondo
+                  Eliminar
                 </button>
               </div>
-            </div>
+            </>
           )}
+        </div>
+      )}
 
-          {/* ============================================= */}
-          {/* ELEMENTO SELECCIONADO */}
-          {/* ============================================= */}
+      {/* ================================================= */}
+      {/* CANVAS - SIEMPRE VISIBLE */}
+      {/* ================================================= */}
 
-          <div className="border-t border-white/10 pt-5">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500">
-              Elemento seleccionado
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+              Área de diseño
             </p>
 
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={
-                  duplicateSelected
-                }
-                disabled={
-                  !selectedType
-                }
-                className="min-w-0 rounded-xl border border-white/10 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                Duplicar
-              </button>
+            <p className="mt-1 text-xs text-zinc-500">
+              {objectCount}{" "}
+              {objectCount ===
+              1
+                ? "elemento"
+                : "elementos"}
+            </p>
+          </div>
 
-              <button
-                type="button"
-                onClick={
-                  deleteSelected
-                }
-                disabled={
-                  !selectedType
-                }
-                className="min-w-0 rounded-xl border border-red-500/20 px-3 py-3 text-xs font-bold uppercase tracking-wider text-red-500 transition hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                Eliminar
-              </button>
-            </div>
+          <button
+            type="button"
+            onClick={
+              clearCanvas
+            }
+            disabled={
+              objectCount === 0
+            }
+            className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 transition hover:text-red-500 disabled:opacity-20"
+          >
+            Limpiar
+          </button>
+        </div>
+
+        <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(45deg,#111_25%,transparent_25%),linear-gradient(-45deg,#111_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#111_75%),linear-gradient(-45deg,transparent_75%,#111_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0px]">
+          <div className="mx-auto w-full min-w-0 max-w-[500px] overflow-x-auto overflow-y-hidden">
+            <canvas
+              ref={
+                htmlCanvasRef
+              }
+            />
           </div>
         </div>
-      </div>
-
-      {/* ================================================= */}
-      {/* CANVAS */}
-      {/* ================================================= */}
-
-      <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(45deg,#111_25%,transparent_25%),linear-gradient(-45deg,#111_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#111_75%),linear-gradient(-45deg,transparent_75%,#111_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0px]">
-        <div className="mx-auto w-full min-w-0 max-w-[500px] overflow-x-auto overflow-y-hidden">
-          <canvas
-            ref={
-              htmlCanvasRef
-            }
-          />
-        </div>
-      </div>
-
-      {/* ================================================= */}
-      {/* ESTADO */}
-      {/* ================================================= */}
-
-      <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
-        <p className="min-w-0 text-xs text-zinc-600">
-          {objectCount === 0
-            ? "Agrega texto o imágenes para comenzar."
-            : `${objectCount} ${
-                objectCount ===
-                1
-                  ? "elemento"
-                  : "elementos"
-              } en el diseño.`}
-        </p>
-
-        <button
-          type="button"
-          onClick={
-            clearCanvas
-          }
-          disabled={
-            objectCount === 0
-          }
-          className="shrink-0 text-xs font-bold uppercase tracking-wider text-zinc-500 transition hover:text-red-500 disabled:opacity-30"
-        >
-          Limpiar diseño
-        </button>
-      </div>
-
-      {/* ================================================= */}
-      {/* AYUDA */}
-      {/* ================================================= */}
-
-      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-        <p className="text-xs leading-5 text-zinc-500">
-          Selecciona un elemento para moverlo,
-          rotarlo, cambiar su tamaño, centrarlo o
-          modificar su posición dentro de las
-          capas. Todos los cambios se sincronizan
-          automáticamente con la vista 3D.
-        </p>
       </div>
     </div>
   );
