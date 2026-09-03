@@ -60,6 +60,9 @@ type LayerItem = {
 
 const HISTORY_LIMIT = 40;
 
+const CANVAS_WIDTH = 500;
+const CANVAS_HEIGHT = 560;
+
 const FONT_OPTIONS = [
   "Arial",
   "Arial Black",
@@ -127,6 +130,11 @@ export default function FabricEditor({
 }: FabricEditorProps) {
   const htmlCanvasRef =
     useRef<HTMLCanvasElement | null>(
+      null
+    );
+
+  const canvasViewportRef =
+    useRef<HTMLDivElement | null>(
       null
     );
 
@@ -579,15 +587,6 @@ export default function FabricEditor({
           }
         );
 
-      /*
-       * Fabric:
-       * índice mayor = más al frente.
-       *
-       * Invertimos para que la lista
-       * se lea como Photoshop/Canva:
-       *
-       * arriba = más al frente.
-       */
       setLayers(
         [...layerItems].reverse()
       );
@@ -821,8 +820,11 @@ export default function FabricEditor({
       new Canvas(
         htmlCanvasRef.current,
         {
-          width: 500,
-          height: 560,
+          width:
+            CANVAS_WIDTH,
+
+          height:
+            CANVAS_HEIGHT,
 
           backgroundColor:
             "transparent",
@@ -837,6 +839,99 @@ export default function FabricEditor({
 
     fabricCanvasRef.current =
       canvas;
+
+    /* ===================================================== */
+    /* CANVAS RESPONSIVE */
+    /* ===================================================== */
+
+    const resizeCanvasToContainer =
+      () => {
+        const viewport =
+          canvasViewportRef.current;
+
+        if (!viewport) {
+          return;
+        }
+
+        const availableWidth =
+          viewport.clientWidth;
+
+        /*
+         * El editor de espalda está montado aunque
+         * temporalmente tenga display:none.
+         *
+         * En ese caso el ancho puede ser 0.
+         * No queremos modificar el canvas hasta que
+         * vuelva a ser visible.
+         */
+        if (
+          availableWidth <= 0
+        ) {
+          return;
+        }
+
+        const displayWidth =
+          Math.min(
+            CANVAS_WIDTH,
+            availableWidth
+          );
+
+        const scale =
+          displayWidth /
+          CANVAS_WIDTH;
+
+        const displayHeight =
+          CANVAS_HEIGHT *
+          scale;
+
+        /*
+         * IMPORTANTE:
+         *
+         * Solo cambiamos las dimensiones CSS.
+         *
+         * Internamente Fabric continúa trabajando
+         * en 500 × 560.
+         *
+         * Esto conserva:
+         * - coordenadas X/Y
+         * - calidad del PNG
+         * - posiciones
+         * - escalas
+         * - sincronización 3D
+         */
+        canvas.setDimensions(
+          {
+            width:
+              displayWidth,
+
+            height:
+              displayHeight,
+          },
+          {
+            cssOnly: true,
+          }
+        );
+
+        canvas.calcOffset();
+      };
+
+    resizeCanvasToContainer();
+
+    const resizeObserver =
+      new ResizeObserver(
+        () => {
+          resizeCanvasToContainer();
+        }
+      );
+
+    const viewport =
+      canvasViewportRef.current;
+
+    if (viewport) {
+      resizeObserver.observe(
+        viewport
+      );
+    }
 
     /* ===================================================== */
     /* SELECCIÓN */
@@ -1029,6 +1124,8 @@ export default function FabricEditor({
     /* ===================================================== */
 
     return () => {
+      resizeObserver.disconnect();
+
       if (
         snapshotFrameRef.current !==
         null
@@ -1105,7 +1202,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* SELECCIONAR CAPA DESDE LISTA */
+  /* SELECCIONAR CAPA */
   /* ======================================================= */
 
   function selectLayer(
@@ -2382,8 +2479,6 @@ export default function FabricEditor({
           {selectedType ===
             "text" && (
             <div className="mt-6 space-y-5 border-t border-white/10 pt-5">
-              {/* TIPOGRAFÍA */}
-
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600">
                   Tipografía
@@ -2419,8 +2514,6 @@ export default function FabricEditor({
                 </select>
               </div>
 
-              {/* TAMAÑO */}
-
               <div>
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600">
@@ -2455,8 +2548,6 @@ export default function FabricEditor({
                 />
               </div>
 
-              {/* ESTILO */}
-
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -2486,8 +2577,6 @@ export default function FabricEditor({
                   I Cursiva
                 </button>
               </div>
-
-              {/* ALINEACIÓN */}
 
               <div className="grid grid-cols-3 gap-2">
                 {(
@@ -2529,8 +2618,6 @@ export default function FabricEditor({
                 )}
               </div>
 
-              {/* COLOR */}
-
               <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-4">
                 <div>
                   <p className="text-xs font-bold text-white">
@@ -2571,10 +2658,6 @@ export default function FabricEditor({
       {panel ===
         "layers" && (
         <div className="space-y-4">
-          {/* ============================================= */}
-          {/* LISTA REAL DE CAPAS */}
-          {/* ============================================= */}
-
           <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -2633,8 +2716,6 @@ export default function FabricEditor({
                             : "border-white/10 bg-black hover:border-white/20 hover:bg-white/[0.02]"
                         }`}
                       >
-                        {/* ICONO */}
-
                         <div
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-black ${
                             selected
@@ -2647,8 +2728,6 @@ export default function FabricEditor({
                             ? "T"
                             : "▧"}
                         </div>
-
-                        {/* INFORMACIÓN */}
 
                         <div className="min-w-0 flex-1">
                           <p
@@ -2685,8 +2764,6 @@ export default function FabricEditor({
                           </div>
                         </div>
 
-                        {/* INDICADOR */}
-
                         <div className="shrink-0">
                           {selected ? (
                             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
@@ -2710,10 +2787,6 @@ export default function FabricEditor({
             </p>
           </div>
 
-          {/* ============================================= */}
-          {/* SIN SELECCIÓN */}
-          {/* ============================================= */}
-
           {!selectedType &&
             layers.length >
               0 && (
@@ -2723,10 +2796,6 @@ export default function FabricEditor({
                 </p>
               </div>
             )}
-
-          {/* ============================================= */}
-          {/* AJUSTE PRECISO */}
-          {/* ============================================= */}
 
           {selectedType && (
             <>
@@ -2749,8 +2818,6 @@ export default function FabricEditor({
                     Seleccionado
                   </span>
                 </div>
-
-                {/* POSICIÓN */}
 
                 <div className="mt-5">
                   <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">
@@ -2812,8 +2879,6 @@ export default function FabricEditor({
                   </div>
                 </div>
 
-                {/* ROTACIÓN */}
-
                 <div className="mt-5">
                   <div className="flex justify-between">
                     <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">
@@ -2854,8 +2919,6 @@ export default function FabricEditor({
                     className="mt-3 w-full accent-red-600"
                   />
                 </div>
-
-                {/* TAMAÑO */}
 
                 <div className="mt-5">
                   <div className="flex justify-between">
@@ -2898,8 +2961,6 @@ export default function FabricEditor({
                   />
                 </div>
 
-                {/* CENTRAR */}
-
                 <div className="mt-5 grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -2922,10 +2983,6 @@ export default function FabricEditor({
                   </button>
                 </div>
               </div>
-
-              {/* ========================================= */}
-              {/* ORDEN */}
-              {/* ========================================= */}
 
               <div className="rounded-2xl border border-white/10 bg-[#111] p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
@@ -2979,10 +3036,6 @@ export default function FabricEditor({
                 </div>
               </div>
 
-              {/* ========================================= */}
-              {/* ACCIONES */}
-              {/* ========================================= */}
-
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -3010,7 +3063,7 @@ export default function FabricEditor({
       )}
 
       {/* ================================================= */}
-      {/* ÁREA DE DISEÑO */}
+      {/* ÁREA DE DISEÑO RESPONSIVE */}
       {/* ================================================= */}
 
       <div>
@@ -3045,7 +3098,12 @@ export default function FabricEditor({
         </div>
 
         <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(45deg,#111_25%,transparent_25%),linear-gradient(-45deg,#111_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#111_75%),linear-gradient(-45deg,transparent_75%,#111_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0px]">
-          <div className="mx-auto w-full min-w-0 max-w-[500px] overflow-x-auto overflow-y-hidden">
+          <div
+            ref={
+              canvasViewportRef
+            }
+            className="mx-auto w-full min-w-0 max-w-[500px] overflow-hidden"
+          >
             <canvas
               ref={
                 htmlCanvasRef
@@ -3053,6 +3111,10 @@ export default function FabricEditor({
             />
           </div>
         </div>
+
+        <p className="mt-3 text-center text-[10px] leading-5 text-zinc-600 sm:hidden">
+          Toca un elemento para moverlo, girarlo o cambiar su tamaño.
+        </p>
       </div>
     </div>
   );
