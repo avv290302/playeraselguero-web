@@ -154,7 +154,7 @@ export default function FabricEditor({
   ] = useState(false);
 
   /* ======================================================= */
-  /* ID INPUT */
+  /* INPUT ÚNICO */
   /* ======================================================= */
 
   const reactId =
@@ -167,7 +167,7 @@ export default function FabricEditor({
     )}`;
 
   /* ======================================================= */
-  /* ESTADOS GENERALES */
+  /* ESTADO GENERAL */
   /* ======================================================= */
 
   const [
@@ -191,7 +191,31 @@ export default function FabricEditor({
   ] = useState(0);
 
   /* ======================================================= */
-  /* ESTADOS DE TEXTO */
+  /* TRANSFORMACIÓN DEL ELEMENTO */
+  /* ======================================================= */
+
+  const [
+    selectedX,
+    setSelectedX,
+  ] = useState(0);
+
+  const [
+    selectedY,
+    setSelectedY,
+  ] = useState(0);
+
+  const [
+    selectedAngle,
+    setSelectedAngle,
+  ] = useState(0);
+
+  const [
+    selectedScale,
+    setSelectedScale,
+  ] = useState(100);
+
+  /* ======================================================= */
+  /* ESTADO DEL TEXTO */
   /* ======================================================= */
 
   const [
@@ -264,7 +288,7 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* ACTUALIZAR VISTA 3D */
+  /* SNAPSHOT / VISTA 3D */
   /* ======================================================= */
 
   const emitSnapshot =
@@ -416,6 +440,11 @@ export default function FabricEditor({
             null
           );
 
+          setSelectedX(0);
+          setSelectedY(0);
+          setSelectedAngle(0);
+          setSelectedScale(100);
+
           emitSnapshot();
         } catch (error) {
           console.error(
@@ -515,7 +544,7 @@ export default function FabricEditor({
     ]);
 
   /* ======================================================= */
-  /* LEER TEXTO SELECCIONADO */
+  /* SINCRONIZAR TEXTO */
   /* ======================================================= */
 
   const syncTextControls =
@@ -580,6 +609,68 @@ export default function FabricEditor({
     );
 
   /* ======================================================= */
+  /* SINCRONIZAR POSICIÓN / ROTACIÓN / ESCALA */
+  /* ======================================================= */
+
+  const syncTransformControls =
+    useCallback(() => {
+      const canvas =
+        fabricCanvasRef.current;
+
+      if (!canvas) {
+        return;
+      }
+
+      const active =
+        canvas.getActiveObject();
+
+      if (!active) {
+        setSelectedX(0);
+        setSelectedY(0);
+        setSelectedAngle(0);
+        setSelectedScale(100);
+
+        return;
+      }
+
+      setSelectedX(
+        Math.round(
+          active.left ?? 0
+        )
+      );
+
+      setSelectedY(
+        Math.round(
+          active.top ?? 0
+        )
+      );
+
+      setSelectedAngle(
+        Math.round(
+          active.angle ?? 0
+        )
+      );
+
+      const scaleX =
+        active.scaleX ?? 1;
+
+      const scaleY =
+        active.scaleY ?? 1;
+
+      setSelectedScale(
+        Math.round(
+          (
+            (
+              scaleX +
+              scaleY
+            ) /
+            2
+          ) * 100
+        )
+      );
+    }, []);
+
+  /* ======================================================= */
   /* CREAR CANVAS */
   /* ======================================================= */
 
@@ -618,6 +709,8 @@ export default function FabricEditor({
       () => {
         const active =
           canvas.getActiveObject();
+
+        syncTransformControls();
 
         if (!active) {
           setSelectedType(
@@ -683,6 +776,8 @@ export default function FabricEditor({
           return;
         }
 
+        syncTransformControls();
+
         emitSnapshot();
         saveHistory();
 
@@ -706,6 +801,8 @@ export default function FabricEditor({
         ) {
           return;
         }
+
+        syncTransformControls();
 
         emitSnapshot();
       };
@@ -777,6 +874,10 @@ export default function FabricEditor({
 
     emitSnapshot();
 
+    /* ===================================================== */
+    /* CLEANUP */
+    /* ===================================================== */
+
     return () => {
       if (
         snapshotFrameRef.current !==
@@ -797,10 +898,11 @@ export default function FabricEditor({
     saveHistory,
     updateHistoryButtons,
     syncTextControls,
+    syncTransformControls,
   ]);
 
   /* ======================================================= */
-  /* OBTENER OBJETO ACTIVO */
+  /* OBJETO ACTIVO */
   /* ======================================================= */
 
   function getActiveObject() {
@@ -815,7 +917,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* OBTENER TEXTO ACTIVO */
+  /* TEXTO ACTIVO */
   /* ======================================================= */
 
   function getActiveText() {
@@ -846,9 +948,17 @@ export default function FabricEditor({
       return;
     }
 
+    const active =
+      canvas.getActiveObject();
+
+    active?.setCoords();
+
     canvas.requestRenderAll();
 
+    syncTransformControls();
+
     emitSnapshot();
+
     saveHistory();
   }
 
@@ -940,6 +1050,8 @@ export default function FabricEditor({
     syncTextControls(
       text
     );
+
+    syncTransformControls();
 
     emitSnapshot();
   }
@@ -1078,6 +1190,8 @@ export default function FabricEditor({
 
     canvas.renderAll();
 
+    syncTransformControls();
+
     emitSnapshot();
 
     if (
@@ -1132,6 +1246,11 @@ export default function FabricEditor({
       null
     );
 
+    setSelectedX(0);
+    setSelectedY(0);
+    setSelectedAngle(0);
+    setSelectedScale(100);
+
     emitSnapshot();
     saveHistory();
   }
@@ -1181,6 +1300,25 @@ export default function FabricEditor({
 
       canvas.renderAll();
 
+      if (
+        clone instanceof
+        Textbox
+      ) {
+        setSelectedType(
+          "text"
+        );
+
+        syncTextControls(
+          clone
+        );
+      } else {
+        setSelectedType(
+          "image"
+        );
+      }
+
+      syncTransformControls();
+
       emitSnapshot();
     } catch (error) {
       console.error(
@@ -1191,8 +1329,284 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
+  /* AJUSTE PRECISO: X */
+  /* ======================================================= */
+
+  function updatePositionX(
+    value: number
+  ) {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active ||
+      Number.isNaN(value)
+    ) {
+      return;
+    }
+
+    setSelectedX(
+      value
+    );
+
+    active.set({
+      left: value,
+    });
+
+    active.setCoords();
+
+    canvas.requestRenderAll();
+
+    emitSnapshot();
+  }
+
+  /* ======================================================= */
+  /* AJUSTE PRECISO: Y */
+  /* ======================================================= */
+
+  function updatePositionY(
+    value: number
+  ) {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active ||
+      Number.isNaN(value)
+    ) {
+      return;
+    }
+
+    setSelectedY(
+      value
+    );
+
+    active.set({
+      top: value,
+    });
+
+    active.setCoords();
+
+    canvas.requestRenderAll();
+
+    emitSnapshot();
+  }
+
+  /* ======================================================= */
+  /* AJUSTE PRECISO: ROTACIÓN */
+  /* ======================================================= */
+
+  function updateObjectAngle(
+    value: number
+  ) {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    setSelectedAngle(
+      value
+    );
+
+    active.rotate(
+      value
+    );
+
+    active.setCoords();
+
+    canvas.requestRenderAll();
+
+    emitSnapshot();
+  }
+
+  /* ======================================================= */
+  /* AJUSTE PRECISO: ESCALA */
+  /* ======================================================= */
+
+  function updateObjectScale(
+    value: number
+  ) {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    const safeValue =
+      Math.min(
+        Math.max(
+          value,
+          10
+        ),
+        300
+      );
+
+    const scale =
+      safeValue / 100;
+
+    setSelectedScale(
+      safeValue
+    );
+
+    active.set({
+      scaleX:
+        scale,
+
+      scaleY:
+        scale,
+    });
+
+    active.setCoords();
+
+    canvas.requestRenderAll();
+
+    emitSnapshot();
+  }
+
+  /* ======================================================= */
+  /* GUARDAR TRANSFORMACIÓN */
+  /* ======================================================= */
+
+  function saveTransformChange() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const active =
+      canvas.getActiveObject();
+
+    if (!active) {
+      return;
+    }
+
+    active.setCoords();
+
+    canvas.requestRenderAll();
+
+    syncTransformControls();
+
+    emitSnapshot();
+
+    saveHistory();
+  }
+
+  /* ======================================================= */
+  /* CENTRAR HORIZONTAL */
+  /* ======================================================= */
+
+  function centerHorizontal() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    const bounds =
+      active.getBoundingRect();
+
+    const currentCenter =
+      bounds.left +
+      bounds.width / 2;
+
+    const desiredCenter =
+      canvas.getWidth() / 2;
+
+    const difference =
+      desiredCenter -
+      currentCenter;
+
+    active.set({
+      left:
+        (active.left ??
+          0) +
+        difference,
+    });
+
+    active.setCoords();
+
+    finishChange();
+  }
+
+  /* ======================================================= */
+  /* CENTRAR VERTICAL */
+  /* ======================================================= */
+
+  function centerVertical() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    const bounds =
+      active.getBoundingRect();
+
+    const currentCenter =
+      bounds.top +
+      bounds.height / 2;
+
+    const desiredCenter =
+      canvas.getHeight() / 2;
+
+    const difference =
+      desiredCenter -
+      currentCenter;
+
+    active.set({
+      top:
+        (active.top ??
+          0) +
+        difference,
+    });
+
+    active.setCoords();
+
+    finishChange();
+  }
+
+  /* ======================================================= */
   /* CAPAS: SUBIR */
-/* ======================================================= */
+  /* ======================================================= */
 
   function moveLayerUp() {
     const canvas =
@@ -1357,7 +1771,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* TAMAÑO */
+  /* TAMAÑO DE LETRA */
   /* ======================================================= */
 
   function updateFontSize(
@@ -1517,6 +1931,11 @@ export default function FabricEditor({
     setSelectedType(
       null
     );
+
+    setSelectedX(0);
+    setSelectedY(0);
+    setSelectedAngle(0);
+    setSelectedScale(100);
 
     emitSnapshot();
     saveHistory();
@@ -1681,8 +2100,7 @@ export default function FabricEditor({
                   event
                 ) =>
                   setTextValue(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 onKeyDown={(
@@ -1790,8 +2208,7 @@ export default function FabricEditor({
                     event
                   ) =>
                     updateFontFamily(
-                      event.target
-                        .value
+                      event.target.value
                     )
                   }
                   className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500"
@@ -1817,12 +2234,12 @@ export default function FabricEditor({
                 </select>
               </div>
 
-              {/* TAMAÑO */}
+              {/* TAMAÑO DE LETRA */}
 
               <div className="mt-5">
                 <div className="flex items-center justify-between gap-4">
                   <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
-                    Tamaño
+                    Tamaño de letra
                   </label>
 
                   <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
@@ -1860,8 +2277,7 @@ export default function FabricEditor({
                     ) =>
                       updateFontSize(
                         Number(
-                          event.target
-                            .value
+                          event.target.value
                         )
                       )
                     }
@@ -2011,12 +2427,207 @@ export default function FabricEditor({
                       event
                     ) =>
                       updateTextColor(
-                        event.target
-                          .value
+                        event.target.value
                       )
                     }
                     className="h-11 w-14 cursor-pointer rounded-lg border border-white/10 bg-black p-1"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================= */}
+          {/* AJUSTE PRECISO */}
+          {/* ============================================= */}
+
+          {selectedType && (
+            <div className="border-t border-white/10 pt-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                  Ajuste preciso
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  Controla la posición, tamaño y rotación del elemento.
+                </p>
+              </div>
+
+              {/* POSICIÓN */}
+
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                  Posición
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <label className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                      X
+                    </span>
+
+                    <input
+                      type="number"
+                      value={
+                        selectedX
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updatePositionX(
+                          Number(
+                            event.target.value
+                          )
+                        )
+                      }
+                      onBlur={
+                        saveTransformChange
+                      }
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-red-500"
+                    />
+                  </label>
+
+                  <label className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                      Y
+                    </span>
+
+                    <input
+                      type="number"
+                      value={
+                        selectedY
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updatePositionY(
+                          Number(
+                            event.target.value
+                          )
+                        )
+                      }
+                      onBlur={
+                        saveTransformChange
+                      }
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-red-500"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* ROTACIÓN */}
+
+              <div className="mt-5">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Rotación
+                  </p>
+
+                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
+                    {
+                      selectedAngle
+                    }
+                    °
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  value={
+                    selectedAngle
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateObjectAngle(
+                      Number(
+                        event.target.value
+                      )
+                    )
+                  }
+                  onPointerUp={
+                    saveTransformChange
+                  }
+                  onBlur={
+                    saveTransformChange
+                  }
+                  className="mt-3 w-full accent-red-600"
+                />
+              </div>
+
+              {/* TAMAÑO */}
+
+              <div className="mt-5">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Tamaño
+                  </p>
+
+                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
+                    {
+                      selectedScale
+                    }
+                    %
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="10"
+                  max="300"
+                  step="1"
+                  value={
+                    selectedScale
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateObjectScale(
+                      Number(
+                        event.target.value
+                      )
+                    )
+                  }
+                  onPointerUp={
+                    saveTransformChange
+                  }
+                  onBlur={
+                    saveTransformChange
+                  }
+                  className="mt-3 w-full accent-red-600"
+                />
+              </div>
+
+              {/* CENTRADO */}
+
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                  Centrar elemento
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={
+                      centerHorizontal
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                  >
+                    ↔ Horizontal
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      centerVertical
+                    }
+                    className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                  >
+                    ↕ Vertical
+                  </button>
                 </div>
               </div>
             </div>
@@ -2028,16 +2639,14 @@ export default function FabricEditor({
 
           {selectedType && (
             <div className="border-t border-white/10 pt-5">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
-                    Capas
-                  </p>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                  Capas
+                </p>
 
-                  <p className="mt-1 text-xs leading-5 text-zinc-600">
-                    Controla qué elementos aparecen encima o debajo.
-                  </p>
-                </div>
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  Controla qué elementos aparecen encima o debajo.
+                </p>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -2175,10 +2784,10 @@ export default function FabricEditor({
       <div className="w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <p className="text-xs leading-5 text-zinc-500">
           Selecciona un elemento para moverlo,
-          rotarlo, cambiar su tamaño o modificar
-          su posición dentro de las capas. Todos
-          los cambios se sincronizan automáticamente
-          con la vista 3D.
+          rotarlo, cambiar su tamaño, centrarlo o
+          modificar su posición dentro de las
+          capas. Todos los cambios se sincronizan
+          automáticamente con la vista 3D.
         </p>
       </div>
     </div>
