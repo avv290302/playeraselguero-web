@@ -515,7 +515,7 @@ export default function FabricEditor({
     ]);
 
   /* ======================================================= */
-  /* LEER PROPIEDADES DEL TEXTO SELECCIONADO */
+  /* LEER TEXTO SELECCIONADO */
   /* ======================================================= */
 
   const syncTextControls =
@@ -800,10 +800,10 @@ export default function FabricEditor({
   ]);
 
   /* ======================================================= */
-  /* OBTENER TEXTO ACTIVO */
+  /* OBTENER OBJETO ACTIVO */
   /* ======================================================= */
 
-  function getActiveText() {
+  function getActiveObject() {
     const canvas =
       fabricCanvasRef.current;
 
@@ -811,8 +811,16 @@ export default function FabricEditor({
       return null;
     }
 
+    return canvas.getActiveObject();
+  }
+
+  /* ======================================================= */
+  /* OBTENER TEXTO ACTIVO */
+  /* ======================================================= */
+
+  function getActiveText() {
     const active =
-      canvas.getActiveObject();
+      getActiveObject();
 
     if (
       !(
@@ -827,10 +835,10 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* FINALIZAR CAMBIO DE TEXTO */
+  /* FINALIZAR CAMBIO */
   /* ======================================================= */
 
-  function finishTextChange() {
+  function finishChange() {
     const canvas =
       fabricCanvasRef.current;
 
@@ -838,7 +846,7 @@ export default function FabricEditor({
       return;
     }
 
-    canvas.renderAll();
+    canvas.requestRenderAll();
 
     emitSnapshot();
     saveHistory();
@@ -1183,6 +1191,122 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
+  /* CAPAS: SUBIR */
+/* ======================================================= */
+
+  function moveLayerUp() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    canvas.bringObjectForward(
+      active
+    );
+
+    canvas.setActiveObject(
+      active
+    );
+
+    finishChange();
+  }
+
+  /* ======================================================= */
+  /* CAPAS: BAJAR */
+  /* ======================================================= */
+
+  function moveLayerDown() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    canvas.sendObjectBackwards(
+      active
+    );
+
+    canvas.setActiveObject(
+      active
+    );
+
+    finishChange();
+  }
+
+  /* ======================================================= */
+  /* CAPAS: AL FRENTE */
+  /* ======================================================= */
+
+  function moveLayerToFront() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    canvas.bringObjectToFront(
+      active
+    );
+
+    canvas.setActiveObject(
+      active
+    );
+
+    finishChange();
+  }
+
+  /* ======================================================= */
+  /* CAPAS: AL FONDO */
+  /* ======================================================= */
+
+  function moveLayerToBack() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    const active =
+      canvas?.getActiveObject();
+
+    if (
+      !canvas ||
+      !active
+    ) {
+      return;
+    }
+
+    canvas.sendObjectToBack(
+      active
+    );
+
+    canvas.setActiveObject(
+      active
+    );
+
+    finishChange();
+  }
+
+  /* ======================================================= */
   /* COLOR TEXTO */
   /* ======================================================= */
 
@@ -1204,7 +1328,7 @@ export default function FabricEditor({
       fill: color,
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1229,7 +1353,7 @@ export default function FabricEditor({
       fontFamily,
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1264,7 +1388,7 @@ export default function FabricEditor({
         safeSize,
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1293,7 +1417,7 @@ export default function FabricEditor({
           : "normal",
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1322,7 +1446,7 @@ export default function FabricEditor({
           : "normal",
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1348,7 +1472,7 @@ export default function FabricEditor({
         alignment,
     });
 
-    finishTextChange();
+    finishChange();
   }
 
   /* ======================================================= */
@@ -1480,6 +1604,7 @@ export default function FabricEditor({
 
   return (
     <div className="grid w-full min-w-0 gap-5 overflow-hidden">
+
       {/* ================================================= */}
       {/* HISTORIAL */}
       {/* ================================================= */}
@@ -1536,6 +1661,7 @@ export default function FabricEditor({
 
       <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5">
         <div className="flex min-w-0 flex-col gap-5">
+
           {/* ============================================= */}
           {/* AGREGAR TEXTO */}
           {/* ============================================= */}
@@ -1633,7 +1759,7 @@ export default function FabricEditor({
           </div>
 
           {/* ============================================= */}
-          {/* EDITOR DE TEXTO PROFESIONAL */}
+          {/* EDITOR DE TEXTO */}
           {/* ============================================= */}
 
           {selectedType ===
@@ -1649,9 +1775,7 @@ export default function FabricEditor({
                 </p>
               </div>
 
-              {/* ========================================= */}
               {/* TIPOGRAFÍA */}
-              {/* ========================================= */}
 
               <div className="mt-5">
                 <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
@@ -1693,9 +1817,7 @@ export default function FabricEditor({
                 </select>
               </div>
 
-              {/* ========================================= */}
               {/* TAMAÑO */}
-              {/* ========================================= */}
 
               <div className="mt-5">
                 <div className="flex items-center justify-between gap-4">
@@ -1738,8 +1860,7 @@ export default function FabricEditor({
                     ) =>
                       updateFontSize(
                         Number(
-                          event
-                            .target
+                          event.target
                             .value
                         )
                       )
@@ -1762,9 +1883,7 @@ export default function FabricEditor({
                 </div>
               </div>
 
-              {/* ========================================= */}
               {/* ESTILO */}
-              {/* ========================================= */}
 
               <div className="mt-5">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
@@ -1802,9 +1921,7 @@ export default function FabricEditor({
                 </div>
               </div>
 
-              {/* ========================================= */}
               {/* ALINEACIÓN */}
-              {/* ========================================= */}
 
               <div className="mt-5">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
@@ -1826,7 +1943,7 @@ export default function FabricEditor({
                         : "border-white/10 bg-black text-white hover:border-white/30"
                     }`}
                   >
-                    ☰ Izq.
+                    Izq.
                   </button>
 
                   <button
@@ -1843,7 +1960,7 @@ export default function FabricEditor({
                         : "border-white/10 bg-black text-white hover:border-white/30"
                     }`}
                   >
-                    ☰ Centro
+                    Centro
                   </button>
 
                   <button
@@ -1860,14 +1977,12 @@ export default function FabricEditor({
                         : "border-white/10 bg-black text-white hover:border-white/30"
                     }`}
                   >
-                    ☰ Der.
+                    Der.
                   </button>
                 </div>
               </div>
 
-              {/* ========================================= */}
               {/* COLOR */}
-              {/* ========================================= */}
 
               <div className="mt-5 flex min-w-0 items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-4">
                 <div className="min-w-0">
@@ -1903,6 +2018,68 @@ export default function FabricEditor({
                     className="h-11 w-14 cursor-pointer rounded-lg border border-white/10 bg-black p-1"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================= */}
+          {/* CAPAS */}
+          {/* ============================================= */}
+
+          {selectedType && (
+            <div className="border-t border-white/10 pt-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                    Capas
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-zinc-600">
+                    Controla qué elementos aparecen encima o debajo.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    moveLayerUp
+                  }
+                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                >
+                  ↑ Subir
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    moveLayerDown
+                  }
+                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                >
+                  ↓ Bajar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    moveLayerToFront
+                  }
+                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                >
+                  ⇈ Al frente
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    moveLayerToBack
+                  }
+                  className="rounded-xl border border-white/10 bg-black px-3 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:border-red-500/50 hover:text-red-500"
+                >
+                  ⇊ Al fondo
+                </button>
               </div>
             </div>
           )}
@@ -1998,11 +2175,10 @@ export default function FabricEditor({
       <div className="w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <p className="text-xs leading-5 text-zinc-500">
           Selecciona un elemento para moverlo,
-          rotarlo o cambiar su tamaño. Al
-          seleccionar texto aparecerán las
-          herramientas avanzadas de tipografía.
-          Todos los cambios se sincronizan con
-          la vista 3D.
+          rotarlo, cambiar su tamaño o modificar
+          su posición dentro de las capas. Todos
+          los cambios se sincronizan automáticamente
+          con la vista 3D.
         </p>
       </div>
     </div>
