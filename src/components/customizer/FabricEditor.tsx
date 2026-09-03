@@ -27,7 +27,32 @@ type FabricEditorProps = {
   ) => void;
 };
 
+type SelectedType =
+  | "text"
+  | "image"
+  | null;
+
+type TextAlignment =
+  | "left"
+  | "center"
+  | "right";
+
+/* ========================================================= */
+/* CONFIGURACIÓN */
+/* ========================================================= */
+
 const HISTORY_LIMIT = 40;
+
+const FONT_OPTIONS = [
+  "Arial",
+  "Arial Black",
+  "Impact",
+  "Verdana",
+  "Trebuchet MS",
+  "Georgia",
+  "Times New Roman",
+  "Courier New",
+];
 
 /* ========================================================= */
 /* ARCHIVO → DATA URL */
@@ -129,7 +154,7 @@ export default function FabricEditor({
   ] = useState(false);
 
   /* ======================================================= */
-  /* ID ÚNICO INPUT */
+  /* ID INPUT */
   /* ======================================================= */
 
   const reactId =
@@ -142,7 +167,7 @@ export default function FabricEditor({
     )}`;
 
   /* ======================================================= */
-  /* ESTADOS */
+  /* ESTADOS GENERALES */
   /* ======================================================= */
 
   const [
@@ -153,18 +178,12 @@ export default function FabricEditor({
   );
 
   const [
-    selectedTextColor,
-    setSelectedTextColor,
-  ] = useState(
-    "#ffffff"
-  );
-
-  const [
     selectedType,
     setSelectedType,
-  ] = useState<
-    "text" | "image" | null
-  >(null);
+  ] =
+    useState<SelectedType>(
+      null
+    );
 
   const [
     objectCount,
@@ -172,7 +191,54 @@ export default function FabricEditor({
   ] = useState(0);
 
   /* ======================================================= */
-  /* CALLBACK ONCHANGE */
+  /* ESTADOS DE TEXTO */
+  /* ======================================================= */
+
+  const [
+    selectedTextColor,
+    setSelectedTextColor,
+  ] = useState(
+    "#ffffff"
+  );
+
+  const [
+    selectedFontFamily,
+    setSelectedFontFamily,
+  ] = useState(
+    "Arial"
+  );
+
+  const [
+    selectedFontSize,
+    setSelectedFontSize,
+  ] = useState(
+    42
+  );
+
+  const [
+    selectedBold,
+    setSelectedBold,
+  ] = useState(
+    true
+  );
+
+  const [
+    selectedItalic,
+    setSelectedItalic,
+  ] = useState(
+    false
+  );
+
+  const [
+    selectedAlignment,
+    setSelectedAlignment,
+  ] =
+    useState<TextAlignment>(
+      "center"
+    );
+
+  /* ======================================================= */
+  /* CALLBACK */
   /* ======================================================= */
 
   useEffect(() => {
@@ -181,7 +247,7 @@ export default function FabricEditor({
   }, [onChange]);
 
   /* ======================================================= */
-  /* ESTADO DE BOTONES */
+  /* BOTONES HISTORIAL */
   /* ======================================================= */
 
   const updateHistoryButtons =
@@ -198,7 +264,7 @@ export default function FabricEditor({
     }, []);
 
   /* ======================================================= */
-  /* ACTUALIZAR 3D */
+  /* ACTUALIZAR VISTA 3D */
   /* ======================================================= */
 
   const emitSnapshot =
@@ -225,9 +291,7 @@ export default function FabricEditor({
             const currentCanvas =
               fabricCanvasRef.current;
 
-            if (
-              !currentCanvas
-            ) {
+            if (!currentCanvas) {
               return;
             }
 
@@ -451,6 +515,71 @@ export default function FabricEditor({
     ]);
 
   /* ======================================================= */
+  /* LEER PROPIEDADES DEL TEXTO SELECCIONADO */
+  /* ======================================================= */
+
+  const syncTextControls =
+    useCallback(
+      (
+        text: Textbox
+      ) => {
+        const fill =
+          text.fill;
+
+        if (
+          typeof fill ===
+          "string"
+        ) {
+          setSelectedTextColor(
+            fill
+          );
+        }
+
+        setSelectedFontFamily(
+          text.fontFamily ||
+            "Arial"
+        );
+
+        setSelectedFontSize(
+          Math.round(
+            text.fontSize ||
+              42
+          )
+        );
+
+        setSelectedBold(
+          text.fontWeight ===
+            "bold" ||
+            Number(
+              text.fontWeight
+            ) >= 600
+        );
+
+        setSelectedItalic(
+          text.fontStyle ===
+            "italic"
+        );
+
+        const alignment =
+          text.textAlign;
+
+        if (
+          alignment ===
+            "left" ||
+          alignment ===
+            "center" ||
+          alignment ===
+            "right"
+        ) {
+          setSelectedAlignment(
+            alignment
+          );
+        }
+      },
+      []
+    );
+
+  /* ======================================================= */
   /* CREAR CANVAS */
   /* ======================================================= */
 
@@ -506,17 +635,9 @@ export default function FabricEditor({
             "text"
           );
 
-          const fill =
-            active.fill;
-
-          if (
-            typeof fill ===
-            "string"
-          ) {
-            setSelectedTextColor(
-              fill
-            );
-          }
+          syncTextControls(
+            active
+          );
 
           return;
         }
@@ -527,7 +648,7 @@ export default function FabricEditor({
       };
 
     /* ===================================================== */
-    /* CAMBIOS */
+    /* EVENTOS */
     /* ===================================================== */
 
     const handleAdded =
@@ -564,6 +685,18 @@ export default function FabricEditor({
 
         emitSnapshot();
         saveHistory();
+
+        const active =
+          canvas.getActiveObject();
+
+        if (
+          active instanceof
+          Textbox
+        ) {
+          syncTextControls(
+            active
+          );
+        }
       };
 
     const handleLiveChange =
@@ -644,10 +777,6 @@ export default function FabricEditor({
 
     emitSnapshot();
 
-    /* ===================================================== */
-    /* CLEANUP */
-    /* ===================================================== */
-
     return () => {
       if (
         snapshotFrameRef.current !==
@@ -667,7 +796,53 @@ export default function FabricEditor({
     emitSnapshot,
     saveHistory,
     updateHistoryButtons,
+    syncTextControls,
   ]);
+
+  /* ======================================================= */
+  /* OBTENER TEXTO ACTIVO */
+  /* ======================================================= */
+
+  function getActiveText() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    if (!canvas) {
+      return null;
+    }
+
+    const active =
+      canvas.getActiveObject();
+
+    if (
+      !(
+        active instanceof
+        Textbox
+      )
+    ) {
+      return null;
+    }
+
+    return active;
+  }
+
+  /* ======================================================= */
+  /* FINALIZAR CAMBIO DE TEXTO */
+  /* ======================================================= */
+
+  function finishTextChange() {
+    const canvas =
+      fabricCanvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    canvas.renderAll();
+
+    emitSnapshot();
+    saveHistory();
+  }
 
   /* ======================================================= */
   /* AGREGAR TEXTO */
@@ -697,15 +872,30 @@ export default function FabricEditor({
           fill:
             selectedTextColor,
 
-          fontSize: 42,
+          fontSize:
+            selectedFontSize,
 
-          fontWeight: 700,
+          fontWeight:
+            selectedBold
+              ? "bold"
+              : "normal",
+
+          fontStyle:
+            selectedItalic
+              ? "italic"
+              : "normal",
 
           fontFamily:
-            "Arial",
+            selectedFontFamily,
 
           textAlign:
-            "center",
+            selectedAlignment,
+
+          originX:
+            "left",
+
+          originY:
+            "top",
 
           transparentCorners:
             false,
@@ -737,6 +927,10 @@ export default function FabricEditor({
 
     setSelectedType(
       "text"
+    );
+
+    syncTextControls(
+      text
     );
 
     emitSnapshot();
@@ -908,10 +1102,6 @@ export default function FabricEditor({
       return;
     }
 
-    /*
-     * Para selección múltiple
-     * guardamos solamente un estado.
-     */
     restoringHistoryRef.current =
       true;
 
@@ -1003,33 +1193,162 @@ export default function FabricEditor({
       color
     );
 
-    const canvas =
-      fabricCanvasRef.current;
+    const text =
+      getActiveText();
 
-    if (!canvas) {
+    if (!text) {
       return;
     }
 
-    const active =
-      canvas.getActiveObject();
-
-    if (
-      !(
-        active instanceof
-        Textbox
-      )
-    ) {
-      return;
-    }
-
-    active.set({
+    text.set({
       fill: color,
     });
 
-    canvas.renderAll();
+    finishTextChange();
+  }
 
-    emitSnapshot();
-    saveHistory();
+  /* ======================================================= */
+  /* TIPOGRAFÍA */
+  /* ======================================================= */
+
+  function updateFontFamily(
+    fontFamily: string
+  ) {
+    setSelectedFontFamily(
+      fontFamily
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontFamily,
+    });
+
+    finishTextChange();
+  }
+
+  /* ======================================================= */
+  /* TAMAÑO */
+  /* ======================================================= */
+
+  function updateFontSize(
+    size: number
+  ) {
+    const safeSize =
+      Math.min(
+        Math.max(
+          size,
+          12
+        ),
+        120
+      );
+
+    setSelectedFontSize(
+      safeSize
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontSize:
+        safeSize,
+    });
+
+    finishTextChange();
+  }
+
+  /* ======================================================= */
+  /* NEGRITA */
+  /* ======================================================= */
+
+  function toggleBold() {
+    const next =
+      !selectedBold;
+
+    setSelectedBold(
+      next
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontWeight:
+        next
+          ? "bold"
+          : "normal",
+    });
+
+    finishTextChange();
+  }
+
+  /* ======================================================= */
+  /* CURSIVA */
+  /* ======================================================= */
+
+  function toggleItalic() {
+    const next =
+      !selectedItalic;
+
+    setSelectedItalic(
+      next
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      fontStyle:
+        next
+          ? "italic"
+          : "normal",
+    });
+
+    finishTextChange();
+  }
+
+  /* ======================================================= */
+  /* ALINEACIÓN */
+  /* ======================================================= */
+
+  function updateAlignment(
+    alignment: TextAlignment
+  ) {
+    setSelectedAlignment(
+      alignment
+    );
+
+    const text =
+      getActiveText();
+
+    if (!text) {
+      return;
+    }
+
+    text.set({
+      textAlign:
+        alignment,
+    });
+
+    finishTextChange();
   }
 
   /* ======================================================= */
@@ -1080,7 +1399,7 @@ export default function FabricEditor({
   }
 
   /* ======================================================= */
-  /* ATAJOS CTRL+Z / CTRL+Y */
+  /* ATAJOS */
   /* ======================================================= */
 
   useEffect(() => {
@@ -1097,7 +1416,9 @@ export default function FabricEditor({
           target?.tagName ===
             "INPUT" ||
           target?.tagName ===
-            "TEXTAREA"
+            "TEXTAREA" ||
+          target?.tagName ===
+            "SELECT"
         ) {
           return;
         }
@@ -1216,7 +1537,7 @@ export default function FabricEditor({
       <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#111] p-5">
         <div className="flex min-w-0 flex-col gap-5">
           {/* ============================================= */}
-          {/* TEXTO */}
+          {/* AGREGAR TEXTO */}
           {/* ============================================= */}
 
           <div className="min-w-0">
@@ -1265,7 +1586,7 @@ export default function FabricEditor({
           </div>
 
           {/* ============================================= */}
-          {/* IMÁGENES */}
+          {/* LOGOS */}
           {/* ============================================= */}
 
           <div className="min-w-0">
@@ -1312,44 +1633,282 @@ export default function FabricEditor({
           </div>
 
           {/* ============================================= */}
-          {/* COLOR TEXTO */}
+          {/* EDITOR DE TEXTO PROFESIONAL */}
           {/* ============================================= */}
 
           {selectedType ===
             "text" && (
             <div className="border-t border-white/10 pt-5">
-              <div className="flex min-w-0 items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                  Editor de texto
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  Personaliza el texto seleccionado.
+                </p>
+              </div>
+
+              {/* ========================================= */}
+              {/* TIPOGRAFÍA */}
+              {/* ========================================= */}
+
+              <div className="mt-5">
+                <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                  Tipografía
+                </label>
+
+                <select
+                  value={
+                    selectedFontFamily
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    updateFontFamily(
+                      event.target
+                        .value
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-red-500"
+                >
+                  {FONT_OPTIONS.map(
+                    (font) => (
+                      <option
+                        key={
+                          font
+                        }
+                        value={
+                          font
+                        }
+                        style={{
+                          fontFamily:
+                            font,
+                        }}
+                      >
+                        {font}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              {/* ========================================= */}
+              {/* TAMAÑO */}
+              {/* ========================================= */}
+
+              <div className="mt-5">
+                <div className="flex items-center justify-between gap-4">
+                  <label className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Tamaño
+                  </label>
+
+                  <span className="rounded-lg border border-white/10 bg-black px-3 py-1 text-xs font-bold text-white">
+                    {
+                      selectedFontSize
+                    }
+                    px
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateFontSize(
+                        selectedFontSize -
+                          2
+                      )
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black text-lg font-bold text-white transition hover:border-red-500"
+                  >
+                    −
+                  </button>
+
+                  <input
+                    type="range"
+                    min="12"
+                    max="120"
+                    step="1"
+                    value={
+                      selectedFontSize
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateFontSize(
+                        Number(
+                          event
+                            .target
+                            .value
+                        )
+                      )
+                    }
+                    className="min-w-0 flex-1 accent-red-600"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateFontSize(
+                        selectedFontSize +
+                          2
+                      )
+                    }
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black text-lg font-bold text-white transition hover:border-red-500"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* ========================================= */}
+              {/* ESTILO */}
+              {/* ========================================= */}
+
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                  Estilo
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={
+                      toggleBold
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-black transition ${
+                      selectedBold
+                        ? "border-red-500 bg-red-500/10 text-red-500"
+                        : "border-white/10 bg-black text-white hover:border-white/30"
+                    }`}
+                  >
+                    B Negrita
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      toggleItalic
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm italic transition ${
+                      selectedItalic
+                        ? "border-red-500 bg-red-500/10 text-red-500"
+                        : "border-white/10 bg-black text-white hover:border-white/30"
+                    }`}
+                  >
+                    I Cursiva
+                  </button>
+                </div>
+              </div>
+
+              {/* ========================================= */}
+              {/* ALINEACIÓN */}
+              {/* ========================================= */}
+
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                  Alineación
+                </p>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateAlignment(
+                        "left"
+                      )
+                    }
+                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                      selectedAlignment ===
+                      "left"
+                        ? "border-red-500 bg-red-500/10 text-red-500"
+                        : "border-white/10 bg-black text-white hover:border-white/30"
+                    }`}
+                  >
+                    ☰ Izq.
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateAlignment(
+                        "center"
+                      )
+                    }
+                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                      selectedAlignment ===
+                      "center"
+                        ? "border-red-500 bg-red-500/10 text-red-500"
+                        : "border-white/10 bg-black text-white hover:border-white/30"
+                    }`}
+                  >
+                    ☰ Centro
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateAlignment(
+                        "right"
+                      )
+                    }
+                    className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                      selectedAlignment ===
+                      "right"
+                        ? "border-red-500 bg-red-500/10 text-red-500"
+                        : "border-white/10 bg-black text-white hover:border-white/30"
+                    }`}
+                  >
+                    ☰ Der.
+                  </button>
+                </div>
+              </div>
+
+              {/* ========================================= */}
+              {/* COLOR */}
+              {/* ========================================= */}
+
+              <div className="mt-5 flex min-w-0 items-center justify-between gap-4 rounded-xl border border-white/10 bg-black p-4">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white">
                     Color del texto
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-zinc-600">
-                    Cambia el color del elemento seleccionado.
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Cambia el color en tiempo real.
                   </p>
                 </div>
 
-                <input
-                  type="color"
-                  value={
-                    selectedTextColor
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateTextColor(
-                      event.target
-                        .value
-                    )
-                  }
-                  className="h-11 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-black p-1"
-                />
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-xs font-bold uppercase text-zinc-500">
+                    {
+                      selectedTextColor
+                    }
+                  </span>
+
+                  <input
+                    type="color"
+                    value={
+                      selectedTextColor
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateTextColor(
+                        event.target
+                          .value
+                      )
+                    }
+                    className="h-11 w-14 cursor-pointer rounded-lg border border-white/10 bg-black p-1"
+                  />
+                </div>
               </div>
             </div>
           )}
 
           {/* ============================================= */}
-          {/* SELECCIONADO */}
+          {/* ELEMENTO SELECCIONADO */}
           {/* ============================================= */}
 
           <div className="border-t border-white/10 pt-5">
@@ -1438,7 +1997,12 @@ export default function FabricEditor({
 
       <div className="w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <p className="text-xs leading-5 text-zinc-500">
-          Selecciona un elemento para moverlo, rotarlo o cambiar su tamaño. Los cambios se sincronizan automáticamente con la vista 3D.
+          Selecciona un elemento para moverlo,
+          rotarlo o cambiar su tamaño. Al
+          seleccionar texto aparecerán las
+          herramientas avanzadas de tipografía.
+          Todos los cambios se sincronizan con
+          la vista 3D.
         </p>
       </div>
     </div>
