@@ -7,45 +7,70 @@ import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./LogoutButton";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/admin/login");
+    redirect(
+      "/admin/login"
+    );
   }
 
-  const { data: adminRecord } = await supabase
+  const {
+    data: adminRecord,
+  } = await supabase
     .from("admin_users")
     .select("user_id")
-    .eq("user_id", user.id)
+    .eq(
+      "user_id",
+      user.id
+    )
     .maybeSingle();
 
   if (!adminRecord) {
-    redirect("/admin/login");
+    redirect(
+      "/admin/login"
+    );
   }
 
-  const { count: productsCount } =
-    await supabase
-      .from("products")
-      .select("*", {
-        count: "exact",
-        head: true,
-      });
+  const {
+    count:
+      productsCount,
+  } = await supabase
+    .from("products")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
 
-  const { count: collectionsCount } =
-    await supabase
-      .from("collections")
-      .select("*", {
-        count: "exact",
-        head: true,
-      });
+  const {
+    count:
+      collectionsCount,
+  } = await supabase
+    .from("collections")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
+
+  const {
+    count:
+      heroSlidesCount,
+  } = await supabase
+    .from("hero_slides")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
       {/* HEADER */}
+
       <header className="border-b border-white/10 bg-[#080808]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-6 py-5">
           <div className="flex items-center gap-4">
@@ -74,6 +99,7 @@ export default async function AdminPage() {
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         {/* BIENVENIDA */}
+
         <section>
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
             Administración
@@ -84,24 +110,26 @@ export default async function AdminPage() {
           </h2>
 
           <p className="mt-3 max-w-2xl text-zinc-500">
-            Administra el catálogo de Playeras El Güero
-            sin modificar código.
+            Administra el catálogo y contenido de
+            Playeras El Güero sin modificar código.
           </p>
         </section>
 
         {/* RESUMEN */}
-        <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+        <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
               Productos
             </p>
 
             <p className="mt-3 text-4xl font-bold">
-              {productsCount ?? 0}
+              {productsCount ??
+                0}
             </p>
 
             <p className="mt-2 text-sm text-zinc-600">
-              Registrados en Supabase
+              Registrados
             </p>
           </div>
 
@@ -111,11 +139,27 @@ export default async function AdminPage() {
             </p>
 
             <p className="mt-3 text-4xl font-bold">
-              {collectionsCount ?? 0}
+              {collectionsCount ??
+                0}
             </p>
 
             <p className="mt-2 text-sm text-zinc-600">
               Líneas registradas
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
+              Carrusel
+            </p>
+
+            <p className="mt-3 text-4xl font-bold">
+              {heroSlidesCount ??
+                0}
+            </p>
+
+            <p className="mt-2 text-sm text-zinc-600">
+              Imágenes de portada
             </p>
           </div>
 
@@ -134,20 +178,18 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        {/* ACCIONES */}
+        {/* CATÁLOGO */}
+
         <section className="mt-12">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
-              Catálogo
-            </p>
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
+            Catálogo
+          </p>
 
-            <h3 className="mt-2 text-2xl font-bold">
-              Administración de productos
-            </h3>
-          </div>
+          <h3 className="mt-2 text-2xl font-bold">
+            Productos y colecciones
+          </h3>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {/* NUEVO PRODUCTO */}
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-7">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 text-2xl font-bold">
                 +
@@ -158,8 +200,7 @@ export default async function AdminPage() {
               </h4>
 
               <p className="mt-2 leading-6 text-zinc-500">
-                Sube una imagen, selecciona colección,
-                tallas, color y descripción.
+                Sube una nueva playera al catálogo.
               </p>
 
               <Link
@@ -170,7 +211,6 @@ export default async function AdminPage() {
               </Link>
             </div>
 
-            {/* ADMINISTRAR PRODUCTOS */}
             <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-7">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-xl">
                 ◉
@@ -181,8 +221,8 @@ export default async function AdminPage() {
               </h4>
 
               <p className="mt-2 leading-6 text-zinc-500">
-                Revisa, publica, oculta o elimina
-                productos del catálogo.
+                Edita, publica, oculta o elimina
+                productos.
               </p>
 
               <Link
@@ -190,6 +230,65 @@ export default async function AdminPage() {
                 className="mt-6 inline-block rounded-lg border border-white/15 px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition hover:border-red-500/50"
               >
                 Ver productos
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-7">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-xl">
+                ▦
+              </div>
+
+              <h4 className="mt-6 text-xl font-bold">
+                Administrar colecciones
+              </h4>
+
+              <p className="mt-2 leading-6 text-zinc-500">
+                Crea, edita, ordena o cambia las
+                fotografías de tus colecciones.
+              </p>
+
+              <Link
+                href="/admin/collections"
+                className="mt-6 inline-block rounded-lg border border-white/15 px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition hover:border-red-500/50"
+              >
+                Ver colecciones
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* APARIENCIA */}
+
+        <section className="mt-12">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-500">
+            Apariencia
+          </p>
+
+          <h3 className="mt-2 text-2xl font-bold">
+            Portada de la tienda
+          </h3>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-7">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 text-xl">
+                ▣
+              </div>
+
+              <h4 className="mt-6 text-xl font-bold">
+                Carrusel de portada
+              </h4>
+
+              <p className="mt-2 leading-6 text-zinc-500">
+                Agrega, reemplaza, ordena, oculta o
+                elimina las fotografías principales
+                de la tienda.
+              </p>
+
+              <Link
+                href="/admin/hero"
+                className="mt-6 inline-block rounded-lg bg-red-600 px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-red-500"
+              >
+                Administrar carrusel
               </Link>
             </div>
           </div>

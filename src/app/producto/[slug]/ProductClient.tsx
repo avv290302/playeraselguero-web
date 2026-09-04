@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useState } from "react";
 
 import Container from "@/components/common/Container";
+import SizeGuide from "@/components/product/SizeGuide";
+
 import { useCart } from "@/context/CartContext";
+
+import {
+  SHIRT_CARE,
+  SHIRT_INFO,
+  SHIRT_SPECIFICATIONS,
+} from "@/lib/productInfo";
 
 type Product = {
   id: string;
@@ -80,15 +88,15 @@ export default function ProductClient({
     }
 
     addItem({
-  id: product.id,
-  slug: product.slug,
-  name: product.name,
-  image: product.image,
-  size: selectedSize,
-  quantity,
-  price: product.price,
-  currency: product.currency,
-});
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      image: product.image,
+      size: selectedSize,
+      quantity,
+      price: product.price,
+      currency: product.currency,
+    });
 
     openCart();
 
@@ -109,11 +117,15 @@ export default function ProductClient({
 
   return (
     <>
+      {/* ================================================= */}
       {/* FICHA DEL PRODUCTO */}
+      {/* ================================================= */}
+
       <section className="bg-[#050505] pb-24 pt-32 text-white">
         <Container>
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">
             {/* IMAGEN */}
+
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#111]">
               <div className="relative aspect-square overflow-hidden">
                 <Image
@@ -128,6 +140,7 @@ export default function ProductClient({
             </div>
 
             {/* INFORMACIÓN */}
+
             <div>
               <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-red-500">
                 Diseño exclusivo
@@ -148,6 +161,7 @@ export default function ProductClient({
               </div>
 
               {/* PRECIO */}
+
               <div className="mt-7">
                 {formattedPrice ? (
                   <div className="flex items-end gap-3">
@@ -170,11 +184,14 @@ export default function ProductClient({
                 </p>
               </div>
 
+              {/* DESCRIPCIÓN */}
+
               <p className="mt-8 max-w-xl leading-7 text-zinc-400">
                 {product.description}
               </p>
 
               {/* COLOR */}
+
               <div className="mt-8">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-300">
                   Color
@@ -195,12 +212,19 @@ export default function ProductClient({
                 </div>
               </div>
 
+              {/* ================================================= */}
               {/* TALLAS */}
+              {/* ================================================= */}
+
               <div className="mt-8">
-                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-                  <p className="text-sm font-bold uppercase tracking-wider text-zinc-300">
-                    Tallas disponibles
-                  </p>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <p className="text-sm font-bold uppercase tracking-wider text-zinc-300">
+                      Tallas disponibles
+                    </p>
+
+                    <SizeGuide />
+                  </div>
 
                   {selectedSize && (
                     <span className="text-sm font-semibold text-red-500">
@@ -240,6 +264,7 @@ export default function ProductClient({
               </div>
 
               {/* CANTIDAD */}
+
               <div className="mt-8">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-300">
                   Cantidad
@@ -276,9 +301,8 @@ export default function ProductClient({
 
               {!selectedSize && (
                 <p className="mt-5 text-sm text-zinc-500">
-                  Selecciona una talla
-                  antes de agregar al
-                  carrito.
+                  Selecciona una talla antes de
+                  agregar al carrito.
                 </p>
               )}
 
@@ -289,6 +313,7 @@ export default function ProductClient({
               )}
 
               {/* BOTONES */}
+
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <button
                   type="button"
@@ -321,9 +346,121 @@ export default function ProductClient({
         </Container>
       </section>
 
+      {/* ================================================= */}
+      {/* INFORMACIÓN DE LA PLAYERA */}
+      {/* ================================================= */}
+
+      <section className="border-t border-white/10 bg-[#080808] py-20 text-white">
+        <Container>
+          <div className="mb-10">
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
+              Calidad y cuidados
+            </p>
+
+            <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-4xl uppercase tracking-wide sm:text-5xl">
+              Detalles de la playera
+            </h2>
+
+            <p className="mt-4 max-w-3xl leading-7 text-zinc-400">
+              Conoce las características de la
+              prenda y sigue nuestras
+              recomendaciones para conservar el
+              algodón y el estampado en mejores
+              condiciones.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            {/* ESPECIFICACIONES */}
+
+            <div className="rounded-3xl border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                Especificaciones
+              </p>
+
+              <div className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2">
+                {SHIRT_SPECIFICATIONS.map(
+                  (item) => (
+                    <div
+                      key={item.label}
+                      className="bg-[#0a0a0a] p-5"
+                    >
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">
+                        {item.label}
+                      </p>
+
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* IMPRESIÓN */}
+
+              <div className="mt-6 rounded-2xl border border-red-500/15 bg-red-500/[0.04] p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-500">
+                  Técnica de impresión
+                </p>
+
+                <p className="mt-3 text-sm leading-7 text-zinc-300">
+                  {SHIRT_INFO.print}
+                </p>
+              </div>
+            </div>
+
+            {/* CUIDADOS */}
+
+            <div className="rounded-3xl border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">
+                Cuidados de la prenda
+              </p>
+
+              <h3 className="mt-3 text-2xl font-bold">
+                Recomendaciones de lavado
+              </h3>
+
+              <div className="mt-6 space-y-3">
+                {SHIRT_CARE.map(
+                  (instruction) => (
+                    <div
+                      key={instruction}
+                      className="flex gap-3 rounded-xl border border-white/[0.06] bg-black/30 p-4"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600/10 text-xs font-black text-red-500">
+                        ✓
+                      </div>
+
+                      <p className="text-sm leading-6 text-zinc-400">
+                        {instruction}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* NOTA */}
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-5">
+            <p className="text-xs leading-6 text-zinc-500">
+              Para obtener mejores resultados,
+              revisa también las indicaciones
+              específicas de la etiqueta de la
+              prenda.
+            </p>
+          </div>
+        </Container>
+      </section>
+
+      {/* ================================================= */}
       {/* PRODUCTOS RELACIONADOS */}
+      {/* ================================================= */}
+
       {relatedProducts.length > 0 && (
-        <section className="border-t border-white/10 bg-[#080808] py-20 text-white">
+        <section className="border-t border-white/10 bg-[#050505] py-20 text-white">
           <Container>
             <div className="mb-10">
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
@@ -331,8 +468,7 @@ export default function ProductClient({
               </p>
 
               <h2 className="mt-3 font-[family-name:var(--font-bebas)] text-4xl uppercase leading-none tracking-wide sm:text-5xl">
-                También te puede
-                interesar
+                También te puede interesar
               </h2>
             </div>
 
@@ -384,9 +520,7 @@ export default function ProductClient({
                         </h3>
 
                         <p className="mt-1 text-sm text-zinc-500">
-                          {
-                            item.subtitle
-                          }
+                          {item.subtitle}
                         </p>
 
                         {itemPrice ? (
@@ -403,8 +537,7 @@ export default function ProductClient({
                           </div>
                         ) : (
                           <p className="mt-4 text-sm text-zinc-600">
-                            Precio
-                            próximamente
+                            Precio próximamente
                           </p>
                         )}
 
