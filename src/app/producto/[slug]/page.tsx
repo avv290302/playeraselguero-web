@@ -6,6 +6,12 @@ import Footer from "@/components/layout/Footer";
 
 import { createClient } from "@/lib/supabase/server";
 
+import {
+  SHIRT_CARE,
+  SHIRT_INFO,
+  SHIRT_SEO_DESCRIPTION,
+} from "@/lib/productInfo";
+
 import ProductClient from "./ProductClient";
 
 type ProductPageProps = {
@@ -14,34 +20,48 @@ type ProductPageProps = {
   }>;
 };
 
-function getCollectionName(collection: unknown) {
+function getCollectionName(
+  collection: unknown
+) {
   if (
     collection &&
     typeof collection === "object" &&
     !Array.isArray(collection) &&
     "name" in collection
   ) {
-    const name = (collection as { name?: unknown }).name;
+    const name = (
+      collection as {
+        name?: unknown;
+      }
+    ).name;
 
-    return typeof name === "string" ? name : "";
+    return typeof name === "string"
+      ? name
+      : "";
   }
 
   if (
     Array.isArray(collection) &&
     collection.length > 0
   ) {
-    const firstCollection = collection[0];
+    const firstCollection =
+      collection[0];
 
     if (
       firstCollection &&
-      typeof firstCollection === "object" &&
+      typeof firstCollection ===
+        "object" &&
       "name" in firstCollection
     ) {
       const name = (
-        firstCollection as { name?: unknown }
+        firstCollection as {
+          name?: unknown;
+        }
       ).name;
 
-      return typeof name === "string" ? name : "";
+      return typeof name === "string"
+        ? name
+        : "";
     }
   }
 
@@ -68,7 +88,9 @@ function normalizeProduct(data: {
 
   return {
     id: data.id,
+
     slug: data.slug,
+
     name: data.name,
 
     line: getCollectionName(
@@ -96,10 +118,15 @@ function normalizeProduct(data: {
     currency:
       data.currency ?? "MXN",
 
-    sizes: Array.isArray(data.sizes)
+    sizes: Array.isArray(
+      data.sizes
+    )
       ? data.sizes.filter(
-          (size): size is string =>
-            typeof size === "string"
+          (
+            size
+          ): size is string =>
+            typeof size ===
+            "string"
         )
       : [],
   };
@@ -111,27 +138,35 @@ async function getProduct(
   const supabase =
     await createClient();
 
-  const { data, error } =
-    await supabase
-      .from("products")
-      .select(`
-        id,
-        slug,
-        name,
-        subtitle,
-        description,
-        color,
-        price,
-        currency,
-        sizes,
-        image_url,
-        collections (
-          name
-        )
-      `)
-      .eq("slug", slug)
-      .eq("active", true)
-      .maybeSingle();
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("products")
+    .select(`
+      id,
+      slug,
+      name,
+      subtitle,
+      description,
+      color,
+      price,
+      currency,
+      sizes,
+      image_url,
+      collections (
+        name
+      )
+    `)
+    .eq(
+      "slug",
+      slug
+    )
+    .eq(
+      "active",
+      true
+    )
+    .maybeSingle();
 
   if (error) {
     console.error(
@@ -146,7 +181,9 @@ async function getProduct(
     return null;
   }
 
-  return normalizeProduct(data);
+  return normalizeProduct(
+    data
+  );
 }
 
 async function getRelatedProducts(
@@ -155,30 +192,41 @@ async function getRelatedProducts(
   const supabase =
     await createClient();
 
-  const { data, error } =
-    await supabase
-      .from("products")
-      .select(`
-        id,
-        slug,
-        name,
-        subtitle,
-        description,
-        color,
-        price,
-        currency,
-        sizes,
-        image_url,
-        collections (
-          name
-        )
-      `)
-      .eq("active", true)
-      .neq("slug", currentSlug)
-      .order("sort_order", {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("products")
+    .select(`
+      id,
+      slug,
+      name,
+      subtitle,
+      description,
+      color,
+      price,
+      currency,
+      sizes,
+      image_url,
+      collections (
+        name
+      )
+    `)
+    .eq(
+      "active",
+      true
+    )
+    .neq(
+      "slug",
+      currentSlug
+    )
+    .order(
+      "sort_order",
+      {
         ascending: true,
-      })
-      .limit(3);
+      }
+    )
+    .limit(3);
 
   if (error) {
     console.error(
@@ -189,7 +237,9 @@ async function getRelatedProducts(
     return [];
   }
 
-  return (data ?? []).map(
+  return (
+    data ?? []
+  ).map(
     normalizeProduct
   );
 }
@@ -197,10 +247,13 @@ async function getRelatedProducts(
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
   const product =
-    await getProduct(slug);
+    await getProduct(
+      slug
+    );
 
   if (!product) {
     return {
@@ -217,11 +270,15 @@ export async function generateMetadata({
     };
   }
 
+  const seoDescription =
+    `${product.name} de la colección ${product.line}. ${SHIRT_SEO_DESCRIPTION}`;
+
   return {
-    title: product.name,
+    title:
+      product.name,
 
     description:
-      `${product.name} de la colección ${product.line}. ${product.description}`,
+      seoDescription,
 
     keywords: [
       product.name,
@@ -230,7 +287,10 @@ export async function generateMetadata({
       "playeras de gallos",
       "playeras personalizadas",
       "playeras galleras",
-      "diseños de playeras",
+      "playeras 100% algodón",
+      "playeras DTF",
+      "playeras de algodón",
+      "playeras cuello redondo",
     ],
 
     alternates: {
@@ -248,19 +308,26 @@ export async function generateMetadata({
         `${product.name} | Playeras El Güero`,
 
       description:
-        product.description,
+        seoDescription,
 
-      images: product.image
-        ? [
-            {
-              url: product.image,
-              width: 1080,
-              height: 1080,
-              alt:
-                `Playera ${product.name} - Playeras El Güero`,
-            },
-          ]
-        : [],
+      images:
+        product.image
+          ? [
+              {
+                url:
+                  product.image,
+
+                width:
+                  1080,
+
+                height:
+                  1080,
+
+                alt:
+                  `Playera ${product.name} 100% algodón - Playeras El Güero`,
+              },
+            ]
+          : [],
     },
 
     twitter: {
@@ -271,11 +338,14 @@ export async function generateMetadata({
         `${product.name} | Playeras El Güero`,
 
       description:
-        product.description,
+        seoDescription,
 
-      images: product.image
-        ? [product.image]
-        : [],
+      images:
+        product.image
+          ? [
+              product.image,
+            ]
+          : [],
     },
 
     robots: {
@@ -288,10 +358,13 @@ export async function generateMetadata({
 export default async function ProductPage({
   params,
 }: ProductPageProps) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
   const product =
-    await getProduct(slug);
+    await getProduct(
+      slug
+    );
 
   if (!product) {
     notFound();
@@ -304,6 +377,15 @@ export default async function ProductPage({
 
   const productUrl =
     `https://playeraselguero.com/producto/${product.slug}`;
+
+  const structuredDescription =
+    [
+      product.description,
+      SHIRT_SEO_DESCRIPTION,
+      SHIRT_INFO.print,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
   const productStructuredData =
     product.price !== null &&
@@ -322,7 +404,7 @@ export default async function ProductPage({
             product.name,
 
           description:
-            product.description,
+            structuredDescription,
 
           url:
             productUrl,
@@ -335,11 +417,16 @@ export default async function ProductPage({
 
           image:
             product.image
-              ? [product.image]
+              ? [
+                  product.image,
+                ]
               : undefined,
 
           color:
             product.color,
+
+          material:
+            SHIRT_INFO.composition,
 
           brand: {
             "@type":
@@ -393,11 +480,112 @@ export default async function ProductPage({
                 "PropertyValue",
 
               name:
+                "Composición",
+
+              value:
+                SHIRT_INFO.composition,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Gramaje de tela",
+
+              value:
+                SHIRT_INFO.fabricWeight,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Tejido",
+
+              value:
+                SHIRT_INFO.fabric,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Tipo de prenda",
+
+              value:
+                SHIRT_INFO.type,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Manga",
+
+              value:
+                SHIRT_INFO.sleeve,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Cuello",
+
+              value:
+                SHIRT_INFO.neck,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Corte",
+
+              value:
+                SHIRT_INFO.fit,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Técnica de impresión",
+
+              value:
+                SHIRT_INFO.print,
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
                 "Tallas disponibles",
 
               value:
                 product.sizes.join(
                   ", "
+                ),
+            },
+
+            {
+              "@type":
+                "PropertyValue",
+
+              name:
+                "Cuidados de la prenda",
+
+              value:
+                SHIRT_CARE.join(
+                  " "
                 ),
             },
           ],
@@ -410,12 +598,13 @@ export default async function ProductPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(
-              productStructuredData
-            ).replace(
-              /</g,
-              "\\u003c"
-            ),
+            __html:
+              JSON.stringify(
+                productStructuredData
+              ).replace(
+                /</g,
+                "\\u003c"
+              ),
           }}
         />
       )}
@@ -423,8 +612,12 @@ export default async function ProductPage({
       <Navbar />
 
       <ProductClient
-        key={product.slug}
-        product={product}
+        key={
+          product.slug
+        }
+        product={
+          product
+        }
         relatedProducts={
           relatedProducts
         }
