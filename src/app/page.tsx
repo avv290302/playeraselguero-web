@@ -4,7 +4,9 @@ import Footer from "@/components/layout/Footer";
 import Hero from "@/components/sections/Hero";
 import Collections from "@/components/sections/Collections";
 import Catalog from "@/components/sections/Catalog";
-import Customizer from "@/components/sections/Customizer";
+
+import CustomizerGate from "@/components/sections/CustomizerGate";
+
 import Benefits from "@/components/sections/Benefits";
 import Gallery from "@/components/sections/Gallery";
 import OrderProcess from "@/components/sections/OrderProcess";
@@ -20,11 +22,15 @@ type HomePageProps = {
 export default async function Home({
   searchParams,
 }: HomePageProps) {
-  const params = await searchParams;
+  const params =
+    await searchParams;
 
-  const requestedLine = Array.isArray(params.line)
-    ? params.line[0]
-    : params.line;
+  const requestedLine =
+    Array.isArray(
+      params.line
+    )
+      ? params.line[0]
+      : params.line;
 
   return (
     <main>
@@ -34,9 +40,27 @@ export default async function Home({
 
       <Collections />
 
-      <Catalog activeFilter={requestedLine} />
+      <Catalog
+        activeFilter={
+          requestedLine
+        }
+      />
 
-      <Customizer />
+      {/* 
+        IMPORTANTE:
+
+        Ya NO importamos Customizer aquí.
+
+        La página inicial solamente carga
+        CustomizerGate, que es extremadamente
+        ligero.
+
+        Three.js, Fabric.js y el modelo 3D
+        se cargarán únicamente cuando el
+        usuario pulse "Abrir personalizador".
+      */}
+
+      <CustomizerGate />
 
       <Benefits />
 
