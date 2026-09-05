@@ -127,10 +127,6 @@ export default async function Catalog({
   const collections =
     collectionsData ?? [];
 
-  /*
-   * "Todos" siempre será el primer filtro.
-   * Los demás vienen directamente de Supabase.
-   */
   const filters = [
     "Todos",
     ...collections.map(
@@ -281,14 +277,10 @@ export default async function Catalog({
       id="catalogo"
       className="relative overflow-hidden bg-[#050505] py-24"
     >
-      {/* FONDO */}
-
       <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-red-600/5 blur-[150px]" />
 
       <Container className="relative z-10">
-        {/* ================================================= */}
         {/* ENCABEZADO */}
-        {/* ================================================= */}
 
         <div className="mb-12">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
@@ -299,7 +291,7 @@ export default async function Catalog({
             Nuestros diseños
           </h2>
 
-          <p className="mt-4 max-w-2xl text-zinc-400">
+          <p className="mt-4 max-w-2xl text-zinc-300">
             Explora nuestros diseños
             organizados por línea y
             encuentra la playera que
@@ -307,9 +299,7 @@ export default async function Catalog({
           </p>
         </div>
 
-        {/* ================================================= */}
-        {/* FILTROS DINÁMICOS */}
-        {/* ================================================= */}
+        {/* FILTROS */}
 
         <div className="mb-10 flex flex-wrap gap-3">
           {filters.map(
@@ -336,7 +326,7 @@ export default async function Catalog({
                   className={`rounded-full border px-5 py-2 text-sm font-bold transition ${
                     isActive
                       ? "border-red-500 bg-red-600 text-white"
-                      : "border-white/10 bg-white/[0.02] text-zinc-400 hover:border-red-500/50 hover:text-white"
+                      : "border-white/15 bg-white/[0.03] text-zinc-300 hover:border-red-500/50 hover:text-white"
                   }`}
                 >
                   {
@@ -348,12 +338,10 @@ export default async function Catalog({
           )}
         </div>
 
-        {/* ================================================= */}
         {/* CONTADOR */}
-        {/* ================================================= */}
 
         <div className="mb-8 flex items-center justify-between gap-4">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-300">
             Mostrando{" "}
             <span className="font-bold text-white">
               {
@@ -368,7 +356,7 @@ export default async function Catalog({
 
           {currentFilter !==
             "Todos" && (
-            <p className="text-sm font-bold uppercase tracking-wider text-red-500">
+            <p className="text-sm font-bold uppercase tracking-wider text-red-400">
               {
                 currentFilter
               }
@@ -376,9 +364,7 @@ export default async function Catalog({
           )}
         </div>
 
-        {/* ================================================= */}
         {/* PRODUCTOS */}
-        {/* ================================================= */}
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map(
@@ -396,8 +382,6 @@ export default async function Catalog({
                   }
                   className="group overflow-hidden rounded-2xl border border-white/10 bg-[#101010] transition duration-300 hover:-translate-y-1 hover:border-red-500/40"
                 >
-                  {/* IMAGEN */}
-
                   <Link
                     href={`/producto/${product.slug}`}
                   >
@@ -413,7 +397,7 @@ export default async function Catalog({
                           className="object-cover transition duration-700 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-600">
+                        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-400">
                           Imagen próximamente
                         </div>
                       )}
@@ -421,7 +405,7 @@ export default async function Catalog({
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                       {product.line && (
-                        <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 backdrop-blur-md">
+                        <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/70 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-200 backdrop-blur-md">
                           {
                             product.line
                           }
@@ -430,11 +414,9 @@ export default async function Catalog({
                     </div>
                   </Link>
 
-                  {/* INFORMACIÓN */}
-
                   <div className="p-5">
                     {product.line && (
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-500">
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-400">
                         Colección{" "}
                         {
                           product.line
@@ -448,7 +430,7 @@ export default async function Catalog({
                       }
                     </h3>
 
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <p className="mt-1 text-sm text-zinc-300">
                       {
                         product.subtitle
                       }
@@ -464,27 +446,25 @@ export default async function Catalog({
                           }
                         </span>
 
-                        <span className="pb-1 text-xs font-bold text-zinc-500">
+                        <span className="pb-1 text-xs font-bold text-zinc-300">
                           {
                             product.currency
                           }
                         </span>
                       </div>
                     ) : (
-                      <p className="mt-4 text-sm font-semibold text-zinc-600">
+                      <p className="mt-4 text-sm font-semibold text-zinc-400">
                         Precio próximamente
                       </p>
                     )}
 
                     {/* DESCRIPCIÓN */}
 
-                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-zinc-400">
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-zinc-300">
                       {
                         product.description
                       }
                     </p>
-
-                    {/* BOTÓN */}
 
                     <Link
                       href={`/producto/${product.slug}`}
@@ -499,10 +479,6 @@ export default async function Catalog({
           )}
         </div>
 
-        {/* ================================================= */}
-        {/* COLECCIÓN SIN PRODUCTOS */}
-        {/* ================================================= */}
-
         {filteredProducts.length ===
           0 && (
           <div className="py-20 text-center">
@@ -510,7 +486,7 @@ export default async function Catalog({
               Próximamente
             </h3>
 
-            <p className="mt-3 text-zinc-500">
+            <p className="mt-3 text-zinc-300">
               Todavía no hay diseños
               disponibles en esta
               colección.

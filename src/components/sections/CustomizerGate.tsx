@@ -37,22 +37,6 @@ export default function CustomizerGate() {
     setError("");
 
     try {
-      /*
-       * IMPORTANTE:
-       *
-       * Este import ocurre ÚNICAMENTE
-       * cuando el usuario pulsa el botón.
-       *
-       * Antes de eso NO se descarga:
-       *
-       * - Fabric.js
-       * - Three.js
-       * - React Three Fiber
-       * - Drei
-       * - Shirt3D
-       * - FabricEditor
-       * - modelo GLB
-       */
       const customizerModule =
         await import(
           "@/components/sections/Customizer"
@@ -76,11 +60,6 @@ export default function CustomizerGate() {
     }
   }
 
-  /*
-   * Una vez cargado eliminamos
-   * completamente esta portada ligera
-   * y mostramos el personalizador real.
-   */
   if (Customizer) {
     return <Customizer />;
   }
@@ -90,8 +69,6 @@ export default function CustomizerGate() {
       id="personaliza"
       className="relative overflow-hidden border-y border-white/10 bg-[#080808] py-24 text-white"
     >
-      {/* FONDOS */}
-
       <div className="absolute left-1/2 top-0 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-red-600/[0.07] blur-[160px]" />
 
       <div className="absolute bottom-0 right-0 h-[300px] w-[300px] rounded-full bg-red-700/[0.05] blur-[120px]" />
@@ -101,7 +78,7 @@ export default function CustomizerGate() {
           {/* ENCABEZADO */}
 
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-500">
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-red-400">
               Personalización 3D
             </p>
 
@@ -112,7 +89,7 @@ export default function CustomizerGate() {
               </span>
             </h2>
 
-            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
+            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-zinc-300 sm:text-base">
               Diseña tu playera desde cero.
               Agrega tus imágenes, textos y
               elementos, visualízala en 3D y
@@ -123,14 +100,10 @@ export default function CustomizerGate() {
           {/* TARJETA */}
 
           <div className="mx-auto mt-12 max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-[#0d0d0d]">
-            {/* PARTE VISUAL */}
-
             <div className="relative overflow-hidden border-b border-white/10 bg-black px-6 py-12 sm:px-10">
               <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-600/10 blur-[80px]" />
 
               <div className="relative mx-auto flex h-48 w-48 items-center justify-center sm:h-56 sm:w-56">
-                {/* PLAYERA ILUSTRATIVA */}
-
                 <svg
                   viewBox="0 0 300 300"
                   role="img"
@@ -210,7 +183,7 @@ export default function CustomizerGate() {
               </div>
 
               <div className="relative mt-6 flex justify-center">
-                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 sm:text-xs">
+                <span className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-red-400 sm:text-xs">
                   Vista previa 3D
                 </span>
               </div>
@@ -220,8 +193,8 @@ export default function CustomizerGate() {
 
             <div className="p-6 sm:p-8">
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/[0.07] bg-black/30 p-5 text-center">
-                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-500">
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-5 text-center">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-400">
                     1
                   </div>
 
@@ -229,14 +202,14 @@ export default function CustomizerGate() {
                     Elige
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  <p className="mt-1 text-xs leading-5 text-zinc-300">
                     Escoge el color de tu
                     playera.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.07] bg-black/30 p-5 text-center">
-                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-500">
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-5 text-center">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-400">
                     2
                   </div>
 
@@ -244,14 +217,14 @@ export default function CustomizerGate() {
                     Diseña
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  <p className="mt-1 text-xs leading-5 text-zinc-300">
                     Agrega imágenes y
                     textos.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.07] bg-black/30 p-5 text-center">
-                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-500">
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-5 text-center">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 font-black text-red-400">
                     3
                   </div>
 
@@ -259,22 +232,18 @@ export default function CustomizerGate() {
                     Visualiza
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-zinc-600">
+                  <p className="mt-1 text-xs leading-5 text-zinc-300">
                     Revisa tu diseño en
                     3D.
                   </p>
                 </div>
               </div>
 
-              {/* ERROR */}
-
               {error && (
-                <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center text-sm text-red-400">
+                <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center text-sm text-red-300">
                   {error}
                 </div>
               )}
-
-              {/* BOTÓN */}
 
               <button
                 type="button"
@@ -297,7 +266,7 @@ export default function CustomizerGate() {
                 )}
               </button>
 
-              <p className="mt-4 text-center text-xs leading-5 text-zinc-600">
+              <p className="mt-4 text-center text-xs leading-5 text-zinc-300">
                 El editor 3D se cargará
                 cuando decidas utilizarlo.
               </p>

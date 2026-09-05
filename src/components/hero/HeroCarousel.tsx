@@ -47,7 +47,7 @@ export default function HeroCarousel({
     );
 
   /* ======================================================= */
-  /* SEGURIDAD AL CAMBIAR LA CANTIDAD DE IMÁGENES */
+  /* SEGURIDAD */
   /* ======================================================= */
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function HeroCarousel({
   ]);
 
   /* ======================================================= */
-  /* SWIPE MÓVIL */
+  /* SWIPE */
   /* ======================================================= */
 
   function handleTouchStart(
@@ -225,7 +225,9 @@ export default function HeroCarousel({
 
           return (
             <img
-              key={slide.id}
+              key={
+                slide.id
+              }
               src={
                 slide.image_url
               }
@@ -249,8 +251,6 @@ export default function HeroCarousel({
         }
       )}
 
-      {/* SOMBRA SUAVE */}
-
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
 
       {/* ================================================= */}
@@ -266,7 +266,7 @@ export default function HeroCarousel({
               previousSlide
             }
             aria-label="Imagen anterior"
-            className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-xl text-white backdrop-blur-md transition hover:border-white/40 hover:bg-black/80 sm:left-4"
+            className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-2xl text-white backdrop-blur-md transition hover:border-white/50 hover:bg-black/90 sm:left-4"
           >
             ‹
           </button>
@@ -277,7 +277,7 @@ export default function HeroCarousel({
               nextSlide
             }
             aria-label="Siguiente imagen"
-            className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-xl text-white backdrop-blur-md transition hover:border-white/40 hover:bg-black/80 sm:right-4"
+            className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-2xl text-white backdrop-blur-md transition hover:border-white/50 hover:bg-black/90 sm:right-4"
           >
             ›
           </button>
@@ -285,10 +285,10 @@ export default function HeroCarousel({
       )}
 
       {/* ================================================= */}
-      {/* DISEÑO EXCLUSIVO */}
+      {/* ETIQUETA */}
       {/* ================================================= */}
 
-      <div className="absolute bottom-3 left-3 z-20 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-md sm:bottom-5 sm:left-5 sm:px-4 sm:text-xs">
+      <div className="absolute bottom-3 left-3 z-20 rounded-full border border-white/15 bg-black/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-md sm:bottom-5 sm:left-5 sm:px-4 sm:text-xs">
         Diseño exclusivo
       </div>
 
@@ -298,7 +298,7 @@ export default function HeroCarousel({
 
       {availableSlides.length >
         1 && (
-        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 sm:bottom-6">
+        <div className="absolute bottom-1 left-1/2 z-20 flex -translate-x-1/2 items-center sm:bottom-2">
           {availableSlides.map(
             (
               slide,
@@ -317,23 +317,34 @@ export default function HeroCarousel({
                 aria-label={`Ver imagen ${
                   index + 1
                 }`}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index ===
-                  current
-                    ? "w-7 bg-red-500"
-                    : "w-2 bg-white/50 hover:bg-white"
-                }`}
-              />
+                aria-current={
+                  index === current
+                    ? "true"
+                    : undefined
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              >
+                <span
+                  className={`block h-2 rounded-full transition-all duration-300 ${
+                    index ===
+                    current
+                      ? "w-7 bg-red-500"
+                      : "w-2 bg-white/70"
+                  }`}
+                />
+              </button>
             )
           )}
         </div>
       )}
 
+      {/* ================================================= */}
       {/* CONTADOR */}
+      {/* ================================================= */}
 
       {availableSlides.length >
         1 && (
-        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur-md">
+        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/15 bg-black/80 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur-md">
           {current + 1} /{" "}
           {
             availableSlides.length
