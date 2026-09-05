@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
             <Image
-              src="/images/logo/logo.png"
+              src="/images/logo/logo.webp"
               alt="Playeras El Güero"
               width={120}
               height={120}

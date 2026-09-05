@@ -125,7 +125,7 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-4">
               <Image
-                src="/images/logo/logo.png"
+                src="/images/logo/logo.webp"
                 alt="Playeras El Güero"
                 width={70}
                 height={70}

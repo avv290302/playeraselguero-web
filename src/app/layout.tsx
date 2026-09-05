@@ -103,7 +103,7 @@ const structuredData = {
 
       logo: {
         "@type": "ImageObject",
-        url: "https://playeraselguero.com/images/logo/logo.png",
+        url: "https://playeraselguero.com/images/logo/logo.webp",
       },
 
       description:

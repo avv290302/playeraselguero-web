@@ -22,9 +22,9 @@ const AUTOPLAY_TIME = 5000;
 const FALLBACK_SLIDE: HeroSlide = {
   id: "fallback",
   image_url:
-    "/images/hero/hero-shirt4.png",
+    "/images/logo/logo.webp",
   alt_text:
-    "Playera personalizada Playeras El Güero",
+    "Playeras El Güero",
 };
 
 export default function HeroCarousel({

@@ -49,7 +49,7 @@ export default async function NewProductPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-5 px-6 py-5">
           <div className="flex items-center gap-4">
             <Image
-              src="/images/logo/logo.png"
+              src="/images/logo/logo.webp"
               alt="Playeras El Güero"
               width={60}
               height={60}

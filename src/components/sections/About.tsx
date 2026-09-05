@@ -20,7 +20,7 @@ export default function About() {
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#111] p-8">
               <div className="relative mx-auto aspect-square max-w-[480px]">
                 <Image
-                  src="/images/logo/logo.png"
+                  src="/images/logo/logo.webp"
                   alt="Logotipo de Playeras El Güero"
                   fill
                   className="object-contain"

@@ -48,7 +48,7 @@ export default function Navbar() {
               onClick={closeMenu}
             >
               <Image
-                src="/images/logo/logo.png"
+                src="/images/logo/logo.webp"
                 alt="Playeras El Güero"
                 width={64}
                 height={64}
